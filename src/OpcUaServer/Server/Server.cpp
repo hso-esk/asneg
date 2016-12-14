@@ -89,6 +89,7 @@ namespace OpcUaServer
 			if (!success) return false;
 
 			applicationLibrary->applicationIf()->config(config_);
+			applicationLibrary->applicationIf()->informationModel(server_.getInformationModel());
 		}
 		return true;
 	}
