@@ -46,9 +46,7 @@
     #define CONNECTION_CLOSE_REMOTE			boost::asio::error::eof
 	#define CONNECTION_CLOSE_EOF			boost::asio::error::eof
 
-	#define nullptr 				NULL
-
-
+	
 #endif
 
 #endif
