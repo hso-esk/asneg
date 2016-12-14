@@ -67,9 +67,23 @@ option(
     ON
 )
 
+option(
+    USE_OpcUaSensorInterface
+    "opcua sensor interface"
+    ON
+)
+
+option(
+    USE_OpcUaEddl
+    "opcua eddl module"
+    ON
+)
+
+
 include(Tools/CMakeLists.txt) 
 
 add_definitions(-DBOOST_ALL_DYN_LINK)
+add_definitions(-std=c++11)
 
 if (WIN32)
 	set(CMAKE_PREFIX_PATH C:\\local\\boost_1_54_0)
@@ -119,6 +133,14 @@ endif ()
 if (USE_Certificate)
     include(OpcUaCertificate/CMakeLists.txt) 
 endif ()
+
+if (USE_OpcUaSensorInterface)
+    include(../../niki/opcua-sensor-interface/CMakeLists.txt)
+endif()
+
+if (USE_OpcUaEddl)
+    include(../../niki/eddl/CMakeLists.txt)
+endif()
 
 
 # -----------------------------------------------------------------------------
