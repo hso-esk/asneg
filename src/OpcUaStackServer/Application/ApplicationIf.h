@@ -22,6 +22,7 @@
 #include "OpcUaStackCore/Base/Config.h"
 #include "OpcUaStackServer/Application/ApplicationServiceIf.h"
 #include "OpcUaStackServer/Application/ApplicationInfo.h"
+#include "OpcUaStackServer/InformationModel/InformationModel.h"
 
 namespace OpcUaStackServer
 {
@@ -65,10 +66,20 @@ namespace OpcUaStackServer
 			return applicationInfo_;
 		}
 
+		void informationModel(InformationModel::SPtr model) {
+		      informationModel_ = model;
+		}
+
+		InformationModel::SPtr informationModel(void) {
+		return informationModel_;
+		}
+
+
 	  private:
 		ApplicationServiceIf* applicationServiceIf_;
 		Config* config_;
 		ApplicationInfo* applicationInfo_;
+		InformationModel::SPtr informationModel_;
 	};
 
 }
