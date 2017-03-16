@@ -68,6 +68,12 @@ option(
 )
 
 option(
+    USE_OpcUaLWM2M
+    "build opcua lwm2m library" 
+    ON
+)
+
+option(
     USE_OpcUaSensorInterface
     "opcua sensor interface"
     ON
@@ -79,11 +85,17 @@ option(
     ON
 )
 
+option(
+    USE_OpcUaIPSO
+    "opcua ipso module"
+    ON
+)
 
 include(Tools/CMakeLists.txt) 
 
 add_definitions(-DBOOST_ALL_DYN_LINK)
 add_definitions(-std=c++11)
+add_definitions(-DOPCUA_LWM2M_SERVER_USE_THREAD)
 
 if (WIN32)
 	set(CMAKE_PREFIX_PATH C:\\local\\boost_1_54_0)
@@ -134,12 +146,20 @@ if (USE_Certificate)
     include(OpcUaCertificate/CMakeLists.txt) 
 endif ()
 
+if (USE_OpcUaLWM2M)
+    include(../../niki/opcua-lwm2m-server/CMakeLists.txt)
+endif()
+
 if (USE_OpcUaSensorInterface)
     include(../../niki/opcua-sensor-interface/CMakeLists.txt)
 endif()
 
 if (USE_OpcUaEddl)
     include(../../niki/eddl/CMakeLists.txt)
+endif()
+
+if (USE_OpcUaIPSO)
+    include(../../niki/ipso/CMakeLists.txt)
 endif()
 
 
