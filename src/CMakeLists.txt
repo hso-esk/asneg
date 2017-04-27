@@ -13,9 +13,9 @@ set(VERSION_MAJOR "1" CACHE STRING "major version")
 set(VERSION_MINOR "0" CACHE STRING "minor version")
 set(VERSION_PATCH "9" CACHE STRING "patch version")
 
-set(BIN_DIR "usr/bin" CACHE STRING "binary directory")
-set(LIB_DIR "usr/lib" CACHE STRING "library directory")
-set(INC_DIR "usr/include" CACHE STRING "library directory")
+#set(BIN_DIR "usr/bin" CACHE STRING "binary directory")
+#set(LIB_DIR "usr/lib" CACHE STRING "library directory")
+#set(INC_DIR "usr/include" CACHE STRING "library directory")
 set(CONF_DIR "etc/OpcUaStack" CACHE STRING "configuration directory")
 set(LOG_DIR "var/log/OpcUaStack" CACHE STRING "log output directory")
 
