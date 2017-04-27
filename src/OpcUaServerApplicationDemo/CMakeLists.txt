@@ -19,8 +19,7 @@ target_link_libraries(
     OpcUaStackServer
     OpcUaStackClient
     ${Boost_LIBRARIES}
-    #${CMAKE_THREAD_LIBS_INIT}
-    pthread
+    ${CMAKE_THREAD_LIBS_INIT}
 )
 
 #configure_file(
