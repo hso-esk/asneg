@@ -35,6 +35,8 @@ target_link_libraries(
     OpcUaProjectBuilder
     ${CMAKE_DL_LIBS}
     ${Boost_LIBRARIES}
+    #${CMAKE_THREAD_LIBS_INIT}
+    pthread
 )
 
 

@@ -20,8 +20,9 @@ target_link_libraries(
     ${OpcUaStackCore}
     ${OpcUaStackServer}
     ${OpcUaStackClient}
-    ${pthread}
     ${Boost_LIBRARIES}
+    #${CMAKE_THREAD_LIBS_INIT}
+    pthread
 )
 
 # -----------------------------------------------------------------------------

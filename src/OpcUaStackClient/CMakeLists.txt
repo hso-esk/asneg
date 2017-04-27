@@ -15,10 +15,11 @@ add_library(OpcUaStackClient SHARED ${OpcUaStackClient_SRC})
 
 target_link_libraries(
     OpcUaStackClient
-	OpcUaStackCore
+    OpcUaStackCore
     ${CMAKE_DL_LIBS}
-    ${pthread}
     ${Boost_LIBRARIES}
+    #${CMAKE_THREAD_LIBS_INIT}
+    pthread
 )
 
 

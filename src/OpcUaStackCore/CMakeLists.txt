@@ -17,9 +17,10 @@ add_library(OpcUaStackCore SHARED ${OpcUaStackCore_SRC})
 target_link_libraries(
     OpcUaStackCore
     ${CMAKE_DL_LIBS}
-#    ${pthread}
     ${Boost_LIBRARIES}
     ${OPENSSL_LIBRARIES}
+    #${CMAKE_THREAD_LIBS_INIT}
+    pthread
 )
 
 
