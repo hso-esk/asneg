@@ -19,12 +19,42 @@
 #define __OpcUaClient_ClientServiceReadH_h__
 
 #include <boost/shared_ptr.hpp>
+#include "OpcUaStackCore/Utility/CSV.h"
 #include "OpcUaClient/ClientService/ClientServiceBase.h"
 #include "OpcUaClient/ClientService/ClientServiceManager.h"
+
+using namespace OpcUaStackCore;
 
 namespace OpcUaClient
 {
 
+	// ------------------------------------------------------------------------
+	// ------------------------------------------------------------------------
+	//
+	// ReadNextNode
+	//
+	// ------------------------------------------------------------------------
+	// ------------------------------------------------------------------------
+	class ReadNextNode
+	{
+	  public:
+		typedef std::vector<ReadNextNode> Vec;
+
+		ReadNextNode(void) {}
+		~ReadNextNode(void) {}
+
+		OpcUaNodeId nodeId_;
+		std::string continousPoint_;
+	};
+
+
+	// ------------------------------------------------------------------------
+	// ------------------------------------------------------------------------
+	//
+	// ClientServiceReadH
+	//
+	// ------------------------------------------------------------------------
+	// ------------------------------------------------------------------------
 	class ClientServiceReadH
 	: public ClientServiceBase
 	{
@@ -40,7 +70,30 @@ namespace OpcUaClient
 		//- ClientServiceReadH interface ---------------------------------------
 
       private:
+		bool hRead(
+			AttributeService::SPtr& attributeService,
+			CommandReadH::SPtr& commandReadH
+		);
+		bool hReadNext(
+			AttributeService::SPtr& attributeService,
+			CommandReadH::SPtr& commandReadH,
+			ReadNextNode::Vec& readNextNodeVec
+		);
+		bool hDelete(
+			AttributeService::SPtr& attributeService,
+			CommandReadH::SPtr& commandReadH,
+			ReadNextNode::Vec& readNextNodeVec
+		);
+		bool output(
+			OpcUaDataValue& dataValue,
+			CommandReadH::SPtr& commandReadH
+		);
+		bool outputCSV(
+			OpcUaDataValue& dataValue,
+			CommandReadH::SPtr& commandReadH
+		);
 
+		CSV::SPtr csv_;
 	};
 
 }

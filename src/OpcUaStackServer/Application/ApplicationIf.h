@@ -1,5 +1,5 @@
 /*
-   Copyright 2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2017 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -66,14 +66,10 @@ namespace OpcUaStackServer
 			return applicationInfo_;
 		}
 
-		void informationModel(InformationModel::SPtr model) {
-		      informationModel_ = model;
+		virtual std::string version(void)
+		{
+			return "0.0.0";
 		}
-
-		InformationModel::SPtr informationModel(void) {
-		return informationModel_;
-		}
-
 
 	  private:
 		ApplicationServiceIf* applicationServiceIf_;

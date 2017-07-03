@@ -1,5 +1,5 @@
 /*
-   Copyright 2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2017 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -31,7 +31,7 @@ namespace OpcUaStackServer
 
 	Server::Server(void)
 	: Core()
-	, informationModel_(InformationModel::construct())
+	, informationModel_(constructSPtr<InformationModel>())
 	, sessionManager_()
 	, serviceManager_()
 	, applicationManager_()
@@ -170,7 +170,7 @@ namespace OpcUaStackServer
 		}
 
 		if (!configXml.write(nodeSetFileName)) {
-			Log(Error, "node set file error")
+			Log(Error, "node set file write error")
 				.parameter("NodeSetFileName", nodeSetFileName)
 				.parameter("ErrorMessage", configXml.errorMessage());
 			return false;
@@ -200,7 +200,7 @@ namespace OpcUaStackServer
 
 			ConfigXml configXml;
 			if (!configXml.parse(nodeSetFileName)) {
-				Log(Error, "node set file error")
+				Log(Error, "node set file parse error")
 					.parameter("NodeSetFileName", nodeSetFileName)
 					.parameter("ErrorMessage", configXml.errorMessage());
 				return false;
@@ -333,7 +333,7 @@ namespace OpcUaStackServer
 	bool
 	Server::initSession(void)
 	{
-		EndpointDescriptionArray::SPtr endpointDescriptionArray = EndpointDescriptionArray::construct();
+		EndpointDescriptionArray::SPtr endpointDescriptionArray = constructSPtr<EndpointDescriptionArray>();
 		bool rc = EndpointDescriptionConfig::endpointDescriptions(
 			endpointDescriptionArray, 
 			"OpcUaServer.Endpoints", 
@@ -345,9 +345,8 @@ namespace OpcUaStackServer
 			return false;
 		}
 
-		DiscoveryService::SPtr discoveryService = DiscoveryService::construct();
+		DiscoveryService::SPtr discoveryService = serviceManager_.discoveryService();
 		discoveryService->endpointDescriptionArray(endpointDescriptionArray);
-		sessionManager_.discoveryService(discoveryService);
 		sessionManager_.ioService(&ioService_);
 
 		return true;

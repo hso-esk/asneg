@@ -1,5 +1,5 @@
 /*
-   Copyright 2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2017 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -102,7 +102,7 @@ namespace OpcUaStackServer
 			return BadNodeIdUnknown;
 		}
 
-		MonitoredItemNotification::SPtr monitoredItemNotification = MonitoredItemNotification::construct();
+		MonitoredItemNotification::SPtr monitoredItemNotification = constructSPtr<MonitoredItemNotification>();
 		if (attribute_->exist() == false) {
 			Log(Debug, "read value error, because value not exist")
 				.parameter("Node", monitoredItemCreateRequest->itemToMonitor().nodeId())
@@ -153,7 +153,7 @@ namespace OpcUaStackServer
 			if (dataValue_.statusCode() == BadNodeClassInvalid) return NodeNoLongerExist;
 
 			// insert notification into queue
-			MonitoredItemNotification::SPtr monitoredItemNotification = MonitoredItemNotification::construct();
+			MonitoredItemNotification::SPtr monitoredItemNotification = constructSPtr<MonitoredItemNotification>();
 			monitoredItemNotification->dataValue().statusCode(BadNodeClassInvalid);
 			monitorItemListPushBack(monitoredItemNotification);
 			return NodeNoLongerExist;
@@ -162,7 +162,7 @@ namespace OpcUaStackServer
 		// check wheater an event schould be generated
 		if (!AttributeAccess::trigger(dataValue_, *attribute_)) return Ok; 
 		
-		MonitoredItemNotification::SPtr monitoredItemNotification = MonitoredItemNotification::construct();
+		MonitoredItemNotification::SPtr monitoredItemNotification = constructSPtr<MonitoredItemNotification>();
 		if (!AttributeAccess::copy(*attribute_, monitoredItemNotification->dataValue())) {
 			// data value is not available
 			if (dataValue_.statusCode() == BadDataUnavailable) return Ok;
@@ -193,6 +193,13 @@ namespace OpcUaStackServer
 		if (actQueueSize >= queSize_) return;
 		monitoredItemNotification->clientHandle(clientHandle_);
 		monitorItemList_.push_back(monitoredItemNotification);
+	}
+
+	BaseNodeClass::SPtr
+	MonitorItem::baseNodeClass(void)
+	{
+		BaseNodeClass::SPtr baseNodeClass = baseNodeClass_.lock();
+		return baseNodeClass;
 	}
 
 }

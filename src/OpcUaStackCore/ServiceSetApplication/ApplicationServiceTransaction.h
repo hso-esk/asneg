@@ -1,5 +1,5 @@
 /*
-   Copyright 2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2017 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -20,22 +20,44 @@
 
 #include "OpcUaStackCore/BuildInTypes/OpcUaIdentifier.h"
 #include "OpcUaStackCore/ServiceSet/ServiceTransactionTemplate.h"
-#include "OpcUaStackCore/ServiceSetApplication/RegisterForwardRequest.h"
-#include "OpcUaStackCore/ServiceSetApplication/RegisterForwardResponse.h"
+#include "OpcUaStackCore/ServiceSetApplication/RegisterForwardNodeRequest.h"
+#include "OpcUaStackCore/ServiceSetApplication/RegisterForwardNodeResponse.h"
+#include "OpcUaStackCore/ServiceSetApplication/RegisterForwardMethodRequest.h"
+#include "OpcUaStackCore/ServiceSetApplication/RegisterForwardMethodResponse.h"
+#include "OpcUaStackCore/ServiceSetApplication/RegisterForwardGlobalRequest.h"
+#include "OpcUaStackCore/ServiceSetApplication/RegisterForwardGlobalResponse.h"
 #include "OpcUaStackCore/ServiceSetApplication/GetNodeReferenceRequest.h"
 #include "OpcUaStackCore/ServiceSetApplication/GetNodeReferenceResponse.h"
 #include "OpcUaStackCore/ServiceSetApplication/NamespaceInfoRequest.h"
 #include "OpcUaStackCore/ServiceSetApplication/NamespaceInfoResponse.h"
+#include "OpcUaStackCore/ServiceSetApplication/CreateNodeInstanceRequest.h"
+#include "OpcUaStackCore/ServiceSetApplication/CreateNodeInstanceResponse.h"
+#include "OpcUaStackCore/ServiceSetApplication/DelNodeInstanceRequest.h"
+#include "OpcUaStackCore/ServiceSetApplication/DelNodeInstanceResponse.h"
 
 namespace OpcUaStackCore
 {
 	
 	typedef ServiceTransactionTemplate<
-		RegisterForwardRequest,
-		RegisterForwardResponse,
-		OpcUaId_RegisterForwardRequest_Encoding_DefaultBinary,
-		OpcUaId_RegisterForwardResponse_Encoding_DefaultBinary
-	> ServiceTransactionRegisterForward;
+		RegisterForwardNodeRequest,
+		RegisterForwardNodeResponse,
+		OpcUaId_RegisterForwardNodeRequest_Encoding_DefaultBinary,
+		OpcUaId_RegisterForwardNodeResponse_Encoding_DefaultBinary
+	> ServiceTransactionRegisterForwardNode;
+
+	typedef ServiceTransactionTemplate<
+		RegisterForwardMethodRequest,
+		RegisterForwardMethodResponse,
+		OpcUaId_RegisterForwardMethodRequest_Encoding_DefaultBinary,
+		OpcUaId_RegisterForwardMethodResponse_Encoding_DefaultBinary
+	> ServiceTransactionRegisterForwardMethod;
+
+	typedef ServiceTransactionTemplate<
+		RegisterForwardGlobalRequest,
+		RegisterForwardGlobalResponse,
+		OpcUaId_RegisterForwardGlobalRequest_Encoding_DefaultBinary,
+		OpcUaId_RegisterForwardGlobalResponse_Encoding_DefaultBinary
+	> ServiceTransactionRegisterForwardGlobal;
 
 	typedef ServiceTransactionTemplate<
 		GetNodeReferenceRequest,
@@ -50,6 +72,20 @@ namespace OpcUaStackCore
 		OpcUaId_NamespaceInfoRequest_Encoding_DefaultBinary,
 		OpcUaId_NamespaceInfoResponse_Encoding_DefaultBinary
 	> ServiceTransactionNamespaceInfo;
+
+	typedef ServiceTransactionTemplate<
+		CreateNodeInstanceRequest,
+		CreateNodeInstanceResponse,
+		OpcUaId_CreateNodeInstanceRequest_Encoding_DefaultBinary,
+		OpcUaId_CreateNodeInstanceResponse_Encoding_DefaultBinary
+	> ServiceTransactionCreateNodeInstance;
+
+	typedef ServiceTransactionTemplate<
+		DelNodeInstanceRequest,
+		DelNodeInstanceResponse,
+		OpcUaId_DelNodeInstanceRequest_Encoding_DefaultBinary,
+		OpcUaId_DelNodeInstanceResponse_Encoding_DefaultBinary
+	> ServiceTransactionDelNodeInstance;
 
 }
 

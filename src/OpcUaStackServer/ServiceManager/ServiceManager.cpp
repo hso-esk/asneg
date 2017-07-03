@@ -1,5 +1,5 @@
 /*
-   Copyright 2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2017 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -21,15 +21,16 @@ namespace OpcUaStackServer
 {
 
 	ServiceManager::ServiceManager(void)
-	: transactionManager_(TransactionManager::construct())
-	, attributeService_(AttributeService::construct())
-	, methodService_(MethodService::construct())
-	, monitoredItemService_(MonitoredItemService::construct())
-	, nodeManagementService_(NodeManagementService::construct())
-	, queryService_(QueryService::construct())
-	, subscriptionService_(SubscriptionService::construct())
-	, viewService_(ViewService::construct())
-	, applicationService_(ApplicationService::construct())
+	: transactionManager_(constructSPtr<TransactionManager>())
+	, attributeService_(constructSPtr<AttributeService>())
+	, methodService_(constructSPtr<MethodService>())
+	, monitoredItemService_(constructSPtr<MonitoredItemService>())
+	, nodeManagementService_(constructSPtr<NodeManagementService>())
+	, queryService_(constructSPtr<QueryService>())
+	, subscriptionService_(constructSPtr<SubscriptionService>())
+	, viewService_(constructSPtr<ViewService>())
+	, applicationService_(constructSPtr<ApplicationService>())
+	, discoveryService_(constructSPtr<DiscoveryService>())
 	{
 		attributeService_->componentName("AttributeService");
 		methodService_->componentName("MethodService");
@@ -39,10 +40,28 @@ namespace OpcUaStackServer
 		subscriptionService_->componentName("SubscriptionService");
 		viewService_->componentName("ViewService");
 		applicationService_->componentName("ApplicationService");
+		discoveryService_->componentName("DiscoveryService");
+
+		initForwardGlobalSync();
 	}
 
 	ServiceManager::~ServiceManager(void)
 	{
+	}
+
+	void
+	ServiceManager::initForwardGlobalSync(void)
+	{
+		ForwardGlobalSync::SPtr forwardGlobalSync = constructSPtr<ForwardGlobalSync>();
+		attributeService_->forwardGlobalSync(forwardGlobalSync);
+		methodService_->forwardGlobalSync(forwardGlobalSync);
+		monitoredItemService_->forwardGlobalSync(forwardGlobalSync);
+		nodeManagementService_->forwardGlobalSync(forwardGlobalSync);
+		queryService_->forwardGlobalSync(forwardGlobalSync);
+		subscriptionService_->forwardGlobalSync(forwardGlobalSync);
+		viewService_->forwardGlobalSync(forwardGlobalSync);
+		applicationService_->forwardGlobalSync(forwardGlobalSync);
+		discoveryService_->forwardGlobalSync(forwardGlobalSync);
 	}
 
 	bool
@@ -56,10 +75,10 @@ namespace OpcUaStackServer
 		ServiceTransactionHistoryRead::name("HistoryRead");
 		ServiceTransactionHistoryUpdate::name("HistoryUpdate");
 
-		ServiceTransactionRead::SPtr serviceTransactionRead = ServiceTransactionRead::construct();
-		ServiceTransactionWrite::SPtr serviceTransactionWrite = ServiceTransactionWrite::construct();
-		ServiceTransactionHistoryRead::SPtr serviceTransactionHistoryRead = ServiceTransactionHistoryRead::construct();
-		ServiceTransactionHistoryUpdate::SPtr serviceTransactionHistoryUpdate = ServiceTransactionHistoryUpdate::construct();
+		ServiceTransactionRead::SPtr serviceTransactionRead = constructSPtr<ServiceTransactionRead>();
+		ServiceTransactionWrite::SPtr serviceTransactionWrite = constructSPtr<ServiceTransactionWrite>();
+		ServiceTransactionHistoryRead::SPtr serviceTransactionHistoryRead = constructSPtr<ServiceTransactionHistoryRead>();
+		ServiceTransactionHistoryUpdate::SPtr serviceTransactionHistoryUpdate = constructSPtr<ServiceTransactionHistoryUpdate>();
 
 		serviceTransactionRead->componentService(&*attributeService_);
 		serviceTransactionWrite->componentService(&*attributeService_);
@@ -77,7 +96,7 @@ namespace OpcUaStackServer
 		//
 		ServiceTransactionCall::name("Call");
 
-		ServiceTransactionCall::SPtr serviceTransactionCall = ServiceTransactionCall::construct();
+		ServiceTransactionCall::SPtr serviceTransactionCall = constructSPtr<ServiceTransactionCall>();
 
 		serviceTransactionCall->componentService(&*methodService_);
 
@@ -92,10 +111,10 @@ namespace OpcUaStackServer
 		ServiceTransactionDeleteNodes::name("DeleteNodes");
 		ServiceTransactionDeleteReferences::name("DeleteReferences");
 
-		ServiceTransactionAddNodes::SPtr serviceTransactionAddNodes = ServiceTransactionAddNodes::construct();
-		ServiceTransactionAddReferences::SPtr serviceTransactionAddReferences = ServiceTransactionAddReferences::construct();
-		ServiceTransactionDeleteNodes::SPtr serviceTransactionDeleteNodes = ServiceTransactionDeleteNodes::construct();
-		ServiceTransactionDeleteReferences::SPtr serviceTransactionDeleteReferences = ServiceTransactionDeleteReferences::construct();
+		ServiceTransactionAddNodes::SPtr serviceTransactionAddNodes = constructSPtr<ServiceTransactionAddNodes>();
+		ServiceTransactionAddReferences::SPtr serviceTransactionAddReferences = constructSPtr<ServiceTransactionAddReferences>();
+		ServiceTransactionDeleteNodes::SPtr serviceTransactionDeleteNodes = constructSPtr<ServiceTransactionDeleteNodes>();
+		ServiceTransactionDeleteReferences::SPtr serviceTransactionDeleteReferences = constructSPtr<ServiceTransactionDeleteReferences>();
 
 		serviceTransactionAddNodes->componentService(&*nodeManagementService_);
 		serviceTransactionAddReferences->componentService(&*nodeManagementService_);
@@ -119,13 +138,13 @@ namespace OpcUaStackServer
 		ServiceTransactionSetPublishingMode::name("SetPublishingMode");
 		ServiceTransactionTransferSubscriptions::name("TransferSubscription");
 
-		ServiceTransactionCreateSubscription::SPtr serviceTransactionCreateSubscription = ServiceTransactionCreateSubscription::construct();
-		ServiceTransactionDeleteSubscriptions::SPtr serviceTransactionDeleteSubscriptions = ServiceTransactionDeleteSubscriptions::construct();
-		ServiceTransactionModifySubscription::SPtr serviceTransactionModifySubscription = ServiceTransactionModifySubscription::construct();
-		ServiceTransactionPublish::SPtr serviceTransactionPublish = ServiceTransactionPublish::construct();
-		ServiceTransactionRepublish::SPtr serviceTransactionRepublish = ServiceTransactionRepublish::construct();
-		ServiceTransactionSetPublishingMode::SPtr serviceTransactionSetPublishingMode = ServiceTransactionSetPublishingMode::construct();
-		ServiceTransactionTransferSubscriptions::SPtr serviceTransactionTransferSubscriptions = ServiceTransactionTransferSubscriptions::construct();
+		ServiceTransactionCreateSubscription::SPtr serviceTransactionCreateSubscription = constructSPtr<ServiceTransactionCreateSubscription>();
+		ServiceTransactionDeleteSubscriptions::SPtr serviceTransactionDeleteSubscriptions = constructSPtr<ServiceTransactionDeleteSubscriptions>();
+		ServiceTransactionModifySubscription::SPtr serviceTransactionModifySubscription = constructSPtr<ServiceTransactionModifySubscription>();
+		ServiceTransactionPublish::SPtr serviceTransactionPublish = constructSPtr<ServiceTransactionPublish>();
+		ServiceTransactionRepublish::SPtr serviceTransactionRepublish = constructSPtr<ServiceTransactionRepublish>();
+		ServiceTransactionSetPublishingMode::SPtr serviceTransactionSetPublishingMode = constructSPtr<ServiceTransactionSetPublishingMode>();
+		ServiceTransactionTransferSubscriptions::SPtr serviceTransactionTransferSubscriptions = constructSPtr<ServiceTransactionTransferSubscriptions>();
 
 		serviceTransactionCreateSubscription->componentService(&*subscriptionService_);
 		serviceTransactionDeleteSubscriptions->componentService(&*subscriptionService_);
@@ -154,11 +173,11 @@ namespace OpcUaStackServer
 		ServiceTransactionSetTriggering::name("SetTriggering");
 
 
-		ServiceTransactionCreateMonitoredItems::SPtr serviceTransactionCreateMonitoredItems = ServiceTransactionCreateMonitoredItems::construct();
-		ServiceTransactionDeleteMonitoredItems::SPtr serviceTransactionDeleteMonitoredItems = ServiceTransactionDeleteMonitoredItems::construct();
-		ServiceTransactionModifyMonitoredItems::SPtr serviceTransactionModifyMonitoredItems = ServiceTransactionModifyMonitoredItems::construct();
-		ServiceTransactionSetMonitoringMode::SPtr serviceTransactionSetMonitoringMode = ServiceTransactionSetMonitoringMode::construct();
-		ServiceTransactionSetTriggering::SPtr serviceTransactionSetTriggering = ServiceTransactionSetTriggering::construct();
+		ServiceTransactionCreateMonitoredItems::SPtr serviceTransactionCreateMonitoredItems = constructSPtr<ServiceTransactionCreateMonitoredItems>();
+		ServiceTransactionDeleteMonitoredItems::SPtr serviceTransactionDeleteMonitoredItems = constructSPtr<ServiceTransactionDeleteMonitoredItems>();
+		ServiceTransactionModifyMonitoredItems::SPtr serviceTransactionModifyMonitoredItems = constructSPtr<ServiceTransactionModifyMonitoredItems>();
+		ServiceTransactionSetMonitoringMode::SPtr serviceTransactionSetMonitoringMode = constructSPtr<ServiceTransactionSetMonitoringMode>();
+		ServiceTransactionSetTriggering::SPtr serviceTransactionSetTriggering = constructSPtr<ServiceTransactionSetTriggering>();
 
 		serviceTransactionCreateMonitoredItems->componentService(&*subscriptionService_);
 		serviceTransactionDeleteMonitoredItems->componentService(&*subscriptionService_);
@@ -182,11 +201,11 @@ namespace OpcUaStackServer
 		ServiceTransactionRegisterNodes::name("RegisterNodes");
 		ServiceTransactionUnregisterNodes::name("UnregisterNodes");
 
-		ServiceTransactionBrowse::SPtr serviceTransactionBrowse = ServiceTransactionBrowse::construct();
-		ServiceTransactionBrowseNext::SPtr serviceTransactionBrowseNext = ServiceTransactionBrowseNext::construct();
-		ServiceTransactionTranslateBrowsePathsToNodeIds::SPtr serviceTransactionTranslateBrowsePathsToNodeIds = ServiceTransactionTranslateBrowsePathsToNodeIds::construct();
-		ServiceTransactionRegisterNodes::SPtr serviceTransactionRegisterNodes = ServiceTransactionRegisterNodes::construct();
-		ServiceTransactionUnregisterNodes::SPtr serviceTransactionUnregisterNodes = ServiceTransactionUnregisterNodes::construct();
+		ServiceTransactionBrowse::SPtr serviceTransactionBrowse = constructSPtr<ServiceTransactionBrowse>();
+		ServiceTransactionBrowseNext::SPtr serviceTransactionBrowseNext = constructSPtr<ServiceTransactionBrowseNext>();
+		ServiceTransactionTranslateBrowsePathsToNodeIds::SPtr serviceTransactionTranslateBrowsePathsToNodeIds = constructSPtr<ServiceTransactionTranslateBrowsePathsToNodeIds>();
+		ServiceTransactionRegisterNodes::SPtr serviceTransactionRegisterNodes = constructSPtr<ServiceTransactionRegisterNodes>();
+		ServiceTransactionUnregisterNodes::SPtr serviceTransactionUnregisterNodes = constructSPtr<ServiceTransactionUnregisterNodes>();
 
 		serviceTransactionBrowse->componentService(&*viewService_);
 		serviceTransactionBrowseNext->componentService(&*viewService_);
@@ -201,17 +220,36 @@ namespace OpcUaStackServer
 		transactionManager_->registerTransaction(serviceTransactionUnregisterNodes);
 
 		//
+		// discovery service service
+		//
+		ServiceTransactionRegisterServer::name("RegisterServer");
+
+		ServiceTransactionRegisterServer::SPtr serviceTransactionRegisterServer = constructSPtr<ServiceTransactionRegisterServer>();
+
+		serviceTransactionRegisterServer->componentService(&*discoveryService_);
+
+		transactionManager_->registerTransaction(serviceTransactionRegisterServer);
+
+		//
 		// application service
 		//
-		ServiceTransactionRegisterForward::name("RegisterForward");
+		ServiceTransactionRegisterForwardNode::name("RegisterForwardNode");
+		ServiceTransactionRegisterForwardMethod::name("RegisterForwardMethod");
+		ServiceTransactionRegisterForwardGlobal::name("RegisterForwardGlobal");
 
-		ServiceTransactionRegisterForward::SPtr serviceTransactionRegisterForward = ServiceTransactionRegisterForward::construct();
+		ServiceTransactionRegisterForwardNode::SPtr serviceTransactionRegisterForwardNode = constructSPtr<ServiceTransactionRegisterForwardNode>();
+		ServiceTransactionRegisterForwardMethod::SPtr serviceTransactionRegisterForwardMethod = constructSPtr<ServiceTransactionRegisterForwardMethod>();
+		ServiceTransactionRegisterForwardGlobal::SPtr serviceTransactionRegisterForwardGlobal = constructSPtr<ServiceTransactionRegisterForwardGlobal>();
 
-		serviceTransactionRegisterForward->componentService(&*applicationService_);
+		serviceTransactionRegisterForwardNode->componentService(&*applicationService_);
+		serviceTransactionRegisterForwardMethod->componentService(&*applicationService_);
+		serviceTransactionRegisterForwardGlobal->componentService(&*applicationService_);
 
-		transactionManager_->registerTransaction(serviceTransactionRegisterForward);
+		transactionManager_->registerTransaction(serviceTransactionRegisterForwardNode);
+		transactionManager_->registerTransaction(serviceTransactionRegisterForwardMethod);
+		transactionManager_->registerTransaction(serviceTransactionRegisterForwardGlobal);
 	
-
+		sessionManager.discoveryService(discoveryService_);
 		sessionManager.transactionManager(transactionManager_);
 		return true;
 	}
@@ -227,6 +265,7 @@ namespace OpcUaStackServer
 		subscriptionService_->informationModel(informationModel);
 		viewService_->informationModel(informationModel);
 		applicationService_->informationModel(informationModel);
+		discoveryService_->informationModel(informationModel);
 		return true;
 	}
 
@@ -241,6 +280,7 @@ namespace OpcUaStackServer
 		subscriptionService_->ioService(ioService);
 		viewService_->ioService(ioService);
 		applicationService_->ioService(ioService);
+		discoveryService_->ioService(ioService);
 		return true;
 	}
 
@@ -256,6 +296,7 @@ namespace OpcUaStackServer
 		rc = rc && subscriptionService_->init();
 		rc = rc && viewService_->init();
 		rc = rc && applicationService_->init();
+		rc = rc && discoveryService_->init();
 		return rc;
 	}
 
@@ -270,6 +311,7 @@ namespace OpcUaStackServer
 		monitoredItemService_->shutdown();
 		methodService_->shutdown();
 		attributeService_->shutdown();
+		discoveryService_->shutdown();
 		return true;
 	}
 
@@ -277,6 +319,12 @@ namespace OpcUaStackServer
 	ServiceManager::applicationService(void)
 	{
 		return applicationService_;
+	}
+
+	DiscoveryService::SPtr
+	ServiceManager::discoveryService(void)
+	{
+		return discoveryService_;
 	}
 
 }

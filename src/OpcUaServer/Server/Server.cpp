@@ -1,5 +1,5 @@
 /*
-   Copyright 2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2017 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -18,6 +18,7 @@
 #include "OpcUaStackCore/Base/Log.h"
 #include "OpcUaServer/Server/Server.h"
 #include "OpcUaStackCore/Utility/Environment.h"
+#include "BuildConfig.h"
 #include <iostream>
 
 using namespace OpcUaStackCore;
@@ -54,23 +55,18 @@ namespace OpcUaServer
 			Log(Error, "shutdown server, because init log error");
 			return false;
 		}
-
-		Log(Debug, "Environment")
-		    .parameter("InstallDir", Environment::installDir())
-		    .parameter("BinDir", Environment::binDir())
-		    .parameter("ConfDir", Environment::confDir())
-		    .parameter("LogDir", Environment::logDir());
-
-		// initial opc ua server
-		if (!server_.init()) {
-			Log(Error, "shutdown server, because init server error");
-			return false;
-		}
+		logServerInfo();
 
 		// initial application library manager
 		applicationManager_.config(*config_);
 		if (!applicationManager_.startup()) {
 			Log(Error, "shutdown server, because startup application manager error");
+			return false;
+		}
+
+		// initial opc ua server
+		if (!server_.init()) {
+			Log(Error, "shutdown server, because init server error");
 			return false;
 		}
 
@@ -97,13 +93,24 @@ namespace OpcUaServer
 	bool
 	Server::start(void)
 	{
+		// start opc ua server
 		server_.start();
+
+		// start discovery client
+		if (!discoveryClient_.startup(*config_)) {
+			return false;
+		}
+
 		return true;
 	}
 
 	void
 	Server::stop(void)
 	{
+		// shutdown discovery client
+		discoveryClient_.shutdown();
+
+		// stop opc ua server
 		server_.stop();
 	}
 
@@ -189,5 +196,28 @@ namespace OpcUaServer
 		return true;
 	}
 
+	void
+	Server::logServerInfo(void)
+	{
+		std::stringstream version;
+		std::stringstream boostVersion;
+		std::stringstream openSSLVersion;
+		std::stringstream confDir;
+
+		version        << "  OpcUaServer version      : "
+			<< VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_PATCH;
+		boostVersion   << "  Boost Library version    : "
+			<< BOOST_VERSION_MAJOR << "." << BOOST_VERSION_MINOR;
+		openSSLVersion << "  Open SSL Library version : "
+			<< OPENSSL_VERSION_MAJOR << "." << OPENSSL_VERSION_MINOR << "." << OPENSSL_VERSION_PATCH;
+		confDir        << "  Config Directory         : "
+			<< Environment::confDir();
+
+		Log(Info, "Start OpcUaServer");
+		Log(Info, version.str());
+		Log(Info, boostVersion.str());
+		Log(Info, openSSLVersion.str());
+		Log(Info, confDir.str());
+	}
 
 }

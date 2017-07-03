@@ -1,5 +1,5 @@
 /*
-   Copyright 2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2017 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -22,6 +22,7 @@
 #include "OpcUaStackCore/Base/ConfigXml.h"
 #include "OpcUaStackCore/Core/FileLogger.h"
 #include "OpcUaStackServer/Server/Server.h"
+#include "OpcUaServer/Server/DiscoveryClient.h"
 #include "OpcUaServer/ApplicationLibrary/ApplicationManager.h"
 
 #include <string>
@@ -45,12 +46,14 @@ namespace OpcUaServer
 	  private:
 		bool readConfigurationFile(void);
 		bool initLogging(void);
+		void logServerInfo(void);
 
 		std::string configurationFile_;
 		Config* config_;
 		OpcUaStackServer::Server server_;
 		FileLogger fileLogger_;
 
+		DiscoveryClient discoveryClient_;
 		ApplicationManager applicationManager_;
 	};
 

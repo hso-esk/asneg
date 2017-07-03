@@ -1,5 +1,5 @@
 /*
-   Copyright 2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2016 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -29,11 +29,6 @@ using namespace OpcUaStackCore;
 
 int main(int argc, char** argv)
 {
-	Environment::installDir(INSTALL_DIR);
-	Environment::binDir(BIN_DIR);
-	Environment::confDir(CONF_DIR);
-	Environment::logDir(LOG_DIR);
-
 	OpcUaServer::ServerApplication serverApplication;
 #if WIN32
 	OpcUaServer::WindowsService* service = OpcUaServer::WindowsService::instance();
@@ -41,5 +36,5 @@ int main(int argc, char** argv)
 	OpcUaServer::LinuxService* service = OpcUaServer::LinuxService::instance();
 #endif
 	service->serverApplicationIf(&serverApplication);
-	service->main("OpcUaServer", argc, argv);
+	service->main(argc, argv);
 }

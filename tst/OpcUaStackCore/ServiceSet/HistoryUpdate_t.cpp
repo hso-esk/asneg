@@ -21,7 +21,7 @@ BOOST_AUTO_TEST_CASE(HistoryUpdate_Title)
 
 BOOST_AUTO_TEST_CASE(HistoryUpdate_Request)
 {
-	RequestHeader::SPtr requestHeader = RequestHeader::construct();
+	RequestHeader::SPtr requestHeader = constructSPtr<RequestHeader>();
 	std::string str;
 	uint32_t pos;
 	OpcUaNodeId typeId;
@@ -50,7 +50,7 @@ BOOST_AUTO_TEST_CASE(HistoryUpdate_Request)
 	OpcUaNumber::opcUaBinaryEncode(ios1, secureTokenId);
 
 	// encode sequence header
-	sequenceHeaderSPtr = SequenceHeader::construct();
+	sequenceHeaderSPtr = constructSPtr<SequenceHeader>();
 	sequenceHeaderSPtr->sequenceNumber(54);
 	sequenceHeaderSPtr->requestId(4);
 	sequenceHeaderSPtr->opcUaBinaryEncode(ios1);
@@ -60,7 +60,7 @@ BOOST_AUTO_TEST_CASE(HistoryUpdate_Request)
 	typeId.opcUaBinaryEncode(ios1);
 
 	// build
-	historyUpdateRequestSPtr = HistoryUpdateRequest::construct();
+	historyUpdateRequestSPtr = constructSPtr<HistoryUpdateRequest>();
 
 	// build RequestHeader
 	opcUaGuidSPtr = constructSPtr<OpcUaGuid>();
@@ -78,7 +78,7 @@ BOOST_AUTO_TEST_CASE(HistoryUpdate_Request)
 	historyUpdateRequestSPtr->opcUaBinaryEncode(ios1);
 
 	// encode MessageHeader
-	messageHeaderSPtr = MessageHeader::construct();
+	messageHeaderSPtr = constructSPtr<MessageHeader>();
 	messageHeaderSPtr->messageType(MessageType_Message);
 	messageHeaderSPtr->messageSize(OpcUaStackCore::count(sb1)+8);
 	messageHeaderSPtr->opcUaBinaryEncode(ios2);
@@ -88,16 +88,15 @@ BOOST_AUTO_TEST_CASE(HistoryUpdate_Request)
 	OpcUaStackCore::dumpHex(ios);
 	
 	std::stringstream ss;
-	ss << "4d 53 47 46 4d 00 00 00  d9 7a 25 09 01 00 00 00" 
+	ss << "4d 53 47 46 4e 00 00 00  d9 7a 25 09 01 00 00 00"
 	   << "36 00 00 00 04 00 00 00  01 00 bc 02 04 01 00 0d"
 	   << "44 55 b2 8d 2f b7 4f 86  4f 0a f5 94 5d d8 33 00"
 	   << "00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 ff"
-       << "ff ff ff e0 93 04 00 00  00 00 00 00 00";
-
+	   << "ff ff ff e0 93 04 00 00  00 00 00 00 00 00";
 	BOOST_REQUIRE(OpcUaStackCore::compare(ios, ss.str(), pos) == true);
 
 	// decode MessageHeader
-	messageHeaderSPtr = MessageHeader::construct();
+	messageHeaderSPtr = constructSPtr<MessageHeader>();
 	messageHeaderSPtr->opcUaBinaryDecode(ios);
 	BOOST_REQUIRE(messageHeaderSPtr->messageType() == MessageType_Message);
 
@@ -108,7 +107,7 @@ BOOST_AUTO_TEST_CASE(HistoryUpdate_Request)
 	BOOST_REQUIRE(secureTokenId == 1);
 
 	// decode sequence header
-	sequenceHeaderSPtr = SequenceHeader::construct();
+	sequenceHeaderSPtr = constructSPtr<SequenceHeader>();
 	sequenceHeaderSPtr->opcUaBinaryDecode(ios);
 	BOOST_REQUIRE(sequenceHeaderSPtr->sequenceNumber() == 54);
 	BOOST_REQUIRE(sequenceHeaderSPtr->requestId() == 4);
@@ -119,7 +118,7 @@ BOOST_AUTO_TEST_CASE(HistoryUpdate_Request)
 	BOOST_REQUIRE(typeId.nodeId<OpcUaUInt32>() == OpcUaId_HistoryUpdateRequest_Encoding_DefaultBinary);
 
 	// decode ReadRequest
-	historyUpdateRequestSPtr = HistoryUpdateRequest::construct();
+	historyUpdateRequestSPtr = constructSPtr<HistoryUpdateRequest>();
 	requestHeader->opcUaBinaryDecode(ios);
 	historyUpdateRequestSPtr->opcUaBinaryDecode(ios);
 
@@ -168,7 +167,7 @@ BOOST_AUTO_TEST_CASE(HistoryUpdate_Response)
 	OpcUaNumber::opcUaBinaryEncode(ios1, secureTokenId);
 
 	// encode sequence header
-	sequenceHeaderSPtr = SequenceHeader::construct();
+	sequenceHeaderSPtr = constructSPtr<SequenceHeader>();
 	sequenceHeaderSPtr->sequenceNumber(54);
 	sequenceHeaderSPtr->requestId(4);
 	sequenceHeaderSPtr->opcUaBinaryEncode(ios1);
@@ -188,7 +187,7 @@ BOOST_AUTO_TEST_CASE(HistoryUpdate_Response)
 	
 	// build HistoryUpdateResult
 	statusCode = Success;
-	historyUpdateResultSPtr = HistoryUpdateResult::construct();
+	historyUpdateResultSPtr = constructSPtr<HistoryUpdateResult>();
 	historyUpdateResultSPtr->statusCode((OpcUaStatusCode)Success);
 	historyUpdateResultSPtr->operationResults()->set(statusCode);
 
@@ -199,7 +198,7 @@ BOOST_AUTO_TEST_CASE(HistoryUpdate_Response)
 	historyUpdateResponseSPtr->opcUaBinaryEncode(ios1);
 
 	// encode MessageHeader
-	messageHeaderSPtr = MessageHeader::construct();
+	messageHeaderSPtr = constructSPtr<MessageHeader>();
 	messageHeaderSPtr->messageType(MessageType_Message);
 	messageHeaderSPtr->messageSize(OpcUaStackCore::count(sb1)+8);
 	messageHeaderSPtr->opcUaBinaryEncode(ios2);
@@ -218,7 +217,7 @@ BOOST_AUTO_TEST_CASE(HistoryUpdate_Response)
 	BOOST_REQUIRE(OpcUaStackCore::compare(ios, ss.str(), pos) == true);
 
 	// decode MessageHeader
-	messageHeaderSPtr = MessageHeader::construct();
+	messageHeaderSPtr = constructSPtr<MessageHeader>();
 	messageHeaderSPtr->opcUaBinaryDecode(ios);
 	BOOST_REQUIRE(messageHeaderSPtr->messageType() == MessageType_Message);
 
@@ -229,7 +228,7 @@ BOOST_AUTO_TEST_CASE(HistoryUpdate_Response)
 	BOOST_REQUIRE(secureTokenId == 1);
 
 	// decode sequence header
-	sequenceHeaderSPtr = SequenceHeader::construct();
+	sequenceHeaderSPtr = constructSPtr<SequenceHeader>();
 	sequenceHeaderSPtr->opcUaBinaryDecode(ios);
 	BOOST_REQUIRE(sequenceHeaderSPtr->sequenceNumber() == 54);
 	BOOST_REQUIRE(sequenceHeaderSPtr->requestId() == 4);
@@ -249,7 +248,7 @@ BOOST_AUTO_TEST_CASE(HistoryUpdate_Response)
 	BOOST_REQUIRE(responseHeader->serviceResult() == Success);
 
 	BOOST_REQUIRE(historyUpdateResponseSPtr->results()->size() == 1);
-	historyUpdateResultSPtr = HistoryUpdateResult::construct();
+	historyUpdateResultSPtr = constructSPtr<HistoryUpdateResult>();
 	historyUpdateResponseSPtr->results()->get(historyUpdateResultSPtr);
 	BOOST_REQUIRE(historyUpdateResultSPtr->statusCode() == Success);
 	

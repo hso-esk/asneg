@@ -1,4 +1,3 @@
-
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
 #
@@ -7,12 +6,21 @@
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
 include_directories(
-    ../inc
+    ${CMAKE_SOURCE_DIR}
     ${Boost_INCLUDE_DIRS}
     ${OPENSSL_INCLUDE_DIR}
 )
-file(GLOB OpcUaStackCore_SRC ./OpcUaStackCore/*/*.cpp)
-add_library(OpcUaStackCore SHARED ${OpcUaStackCore_SRC})
+
+file(
+    GLOB OpcUaStackCore_SRC 
+    ./OpcUaStackCore/*/*.cpp
+)
+
+add_library(
+    OpcUaStackCore 
+    SHARED 
+    ${OpcUaStackCore_SRC}
+)
 
 target_link_libraries(
     OpcUaStackCore
@@ -20,6 +28,13 @@ target_link_libraries(
     ${Boost_LIBRARIES}
     ${OPENSSL_LIBRARIES}
     ${CMAKE_THREAD_LIBS_INIT}
+)
+
+set_target_properties(
+    OpcUaStackCore
+    PROPERTIES 
+    VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}"
+    SOVERSION ${VERSION_MAJOR}
 )
 
 
@@ -40,16 +55,111 @@ file(GLOB INC_OpcUaStackCore_ServiceSetApplication OpcUaStackCore/ServiceSetAppl
 file(GLOB INC_OpcUaStackCore_TCPChannel OpcUaStackCore/TCPChannel/*.h)
 file(GLOB INC_OpcUaStackCore_Utility OpcUaStackCore/Utility/*.h)
 file(GLOB INC_OpcUaStackCore_Application OpcUaStackCore/Application/*.h)
+file(GLOB INC_OpcUaStackCore_Container OpcUaStackCore/Container/*.h)
+file(GLOB INC_OpcUaStackCore_ApplicationUtility OpcUaStackCore/ApplicationUtility/*.h)
+file(GLOB INC_OpcUaStackCore_StandardDataTypes OpcUaStackCore/StandardDataTypes/*.h)
+file(GLOB INC_OpcUaStackCore_ComplexDataTypes OpcUaStackCore/ComplexDataTypes/*.h)
+file(GLOB INC_OpcUaStackCore_DataType OpcUaStackCore/DataType/*.h)
+file(GLOB INC_OpcUaStackCore_EventType OpcUaStackCore/EventType/*.h)
 
-install(TARGETS OpcUaStackCore DESTINATION ${LIB_DIR}/OpcUaStack)
-install(FILES ${INC_OpcUaStackCore_Base} DESTINATION ${INC_DIR}/OpcUaStack/OpcUaStackCore/Base)
-install(FILES ${INC_OpcUaStackCore_BuildInTypes} DESTINATION ${INC_DIR}/OpcUaStack/OpcUaStackCore/BuildInTypes)
-install(FILES ${INC_OpcUaStackCore_Component} DESTINATION ${INC_DIR}/OpcUaStack/OpcUaStackCore/Component)
-install(FILES ${INC_OpcUaStackCore_Core} DESTINATION ${INC_DIR}/OpcUaStack/OpcUaStackCore/Core)
-install(FILES ${INC_OpcUaStackCore_SecureChannel} DESTINATION ${INC_DIR}/OpcUaStack/OpcUaStackCore/SecureChannel)
-install(FILES ${INC_OpcUaStackCore_ServiceSet} DESTINATION ${INC_DIR}/OpcUaStack/OpcUaStackCore/ServiceSet)
-install(FILES ${INC_OpcUaStackCore_ServiceSetApplication} DESTINATION ${INC_DIR}/OpcUaStack/OpcUaStackCore/ServiceSetApplication)
-install(FILES ${INC_OpcUaStackCore_TCPChannel} DESTINATION ${INC_DIR}/OpcUaStack/OpcUaStackCore/TCPChannel)
-install(FILES ${INC_OpcUaStackCore_Utility} DESTINATION ${INC_DIR}/OpcUaStack/OpcUaStackCore/Utility)
-install(FILES ${INC_OpcUaStackCore_Application} DESTINATION ${INC_DIR}/OpcUaStack/OpcUaStackCore/Application)
+install(
+    TARGETS OpcUaStackCore 
+    DESTINATION /usr/lib
+    COMPONENT libraries
+)
 
+install(
+    FILES ${INC_OpcUaStackCore_Base} 
+    DESTINATION /usr/include/OpcUaStack${VERSION_MAJOR}/OpcUaStackCore/Base
+    COMPONENT headers
+)
+
+install(
+    FILES ${INC_OpcUaStackCore_BuildInTypes} 
+    DESTINATION /usr/include/OpcUaStack${VERSION_MAJOR}/OpcUaStackCore/BuildInTypes
+    COMPONENT headers
+)
+
+install(
+    FILES ${INC_OpcUaStackCore_Component} 
+    DESTINATION /usr/include/OpcUaStack${VERSION_MAJOR}/OpcUaStackCore/Component
+    COMPONENT headers
+)
+
+install(
+    FILES ${INC_OpcUaStackCore_Core} 
+    DESTINATION /usr/include/OpcUaStack${VERSION_MAJOR}/OpcUaStackCore/Core
+    COMPONENT headers
+)
+
+install(
+    FILES ${INC_OpcUaStackCore_SecureChannel} 
+    DESTINATION /usr/include/OpcUaStack${VERSION_MAJOR}/OpcUaStackCore/SecureChannel
+    COMPONENT headers
+)
+
+install(
+    FILES ${INC_OpcUaStackCore_ServiceSet} 
+    DESTINATION /usr/include/OpcUaStack${VERSION_MAJOR}/OpcUaStackCore/ServiceSet
+    COMPONENT headers
+)
+
+install(
+    FILES ${INC_OpcUaStackCore_ServiceSetApplication} 
+    DESTINATION /usr/include/OpcUaStack${VERSION_MAJOR}/OpcUaStackCore/ServiceSetApplication
+    COMPONENT headers
+)
+
+install(
+    FILES ${INC_OpcUaStackCore_TCPChannel} 
+    DESTINATION /usr/include/OpcUaStack${VERSION_MAJOR}/OpcUaStackCore/TCPChannel
+    COMPONENT headers
+)
+
+install(
+    FILES ${INC_OpcUaStackCore_Utility} 
+    DESTINATION /usr/include/OpcUaStack${VERSION_MAJOR}/OpcUaStackCore/Utility
+    COMPONENT headers
+)
+
+install(
+    FILES ${INC_OpcUaStackCore_Application} 
+    DESTINATION /usr/include/OpcUaStack${VERSION_MAJOR}/OpcUaStackCore/Application
+    COMPONENT headers
+)
+
+install(
+    FILES ${INC_OpcUaStackCore_Container} 
+    DESTINATION /usr/include/OpcUaStack${VERSION_MAJOR}/OpcUaStackCore/Container
+    COMPONENT headers
+)
+
+install(
+    FILES ${INC_OpcUaStackCore_ApplicationUtility} 
+    DESTINATION /usr/include/OpcUaStack${VERSION_MAJOR}/OpcUaStackCore/ApplicationUtility
+    COMPONENT headers
+)
+
+install(
+    FILES ${INC_OpcUaStackCore_StandardDataTypes} 
+    DESTINATION /usr/include/OpcUaStack${VERSION_MAJOR}/OpcUaStackCore/StandardDataTypes
+    COMPONENT headers
+)
+
+install(
+    FILES ${INC_OpcUaStackCore_ComplexDataTypes} 
+    DESTINATION /usr/include/OpcUaStack${VERSION_MAJOR}/OpcUaStackCore/ComplexDataTypes
+    COMPONENT headers
+)
+
+install(
+    FILES ${INC_OpcUaStackCore_DataType} 
+    DESTINATION /usr/include/OpcUaStack${VERSION_MAJOR}/OpcUaStackCore/DataType
+    COMPONENT headers
+)
+
+install(
+    FILES ${INC_OpcUaStackCore_EventType} 
+    DESTINATION /usr/include/OpcUaStack${VERSION_MAJOR}/OpcUaStackCore/EventType
+    COMPONENT headers
+)

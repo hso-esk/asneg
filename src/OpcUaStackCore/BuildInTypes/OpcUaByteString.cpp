@@ -256,4 +256,19 @@ namespace OpcUaStackCore
 		return ss.str();
 	}
 
+	std::string
+	OpcUaByteString::toString(void) const
+	{
+		if (length_ < 1) {
+			return std::string();
+		}
+		return std::string((char*)value_, length_);
+	}
+
+	void
+	OpcUaByteString::fromString(const std::string& string)
+	{
+		value(string);
+	}
+
 };

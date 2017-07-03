@@ -30,34 +30,10 @@
 namespace OpcUaStackCore
 {
 
-	class DLLEXPORT PkiExtensionEntry
-	{
-	  public:
-		typedef std::vector<PkiExtensionEntry> Vec;
-
-		PkiExtensionEntry(void);
-		PkiExtensionEntry(const std::string& key, const std::string& value);
-		~PkiExtensionEntry(void);
-
-		void key(const std::string& key);
-		std::string& key(void);
-		void value(const std::string& value);
-		std::string& value(void);
-
-	  private:
-		std::string key_;
-		std::string value_;
-	};
-
 	class DLLEXPORT PkiCertificate
 	: public PkiError
 	{
 	  public:
-		static bool loadCryptoStrings_;
-		static std::list<std::string> cryptoStringErrorList_;
-		static PkiExtensionEntry::Vec pkiEntensionEntryVec_;
-		static bool init_;
-
 		PkiCertificate(void);
 		~PkiCertificate(void);
 
@@ -77,6 +53,10 @@ namespace OpcUaStackCore
 		);
 		bool toDERFile(const std::string& derFileName);
 		bool fromDERFile(const std::string& derFileName);
+		bool getSignatureAlgorithm(std::string& signatureAlgorithm);
+		bool getSignature(std::string& signature);
+		bool getPublicKeyAlgorithm(std::string& publicKeyAlgorithm);
+		bool getPublicKey(std::string& publicKey);
 
 	  private:
 		bool getX509Name(X509_NAME* name, uint32_t nameId, std::string& value);
@@ -84,8 +64,6 @@ namespace OpcUaStackCore
 		bool PosixTimeToASN1Time(boost::posix_time::ptime& ptime, ASN1_TIME* asn1Time);
 
 		X509 *x509Cert_;
-
-		time_t startTime_;
 	};
 
 }

@@ -1,5 +1,5 @@
 /*
-   Copyright 2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2017 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -95,15 +95,22 @@ namespace OpcUaStackCore
 	bool 
 	OpcUaDateTime::fromISOString(const std::string& dateTimeString)
 	{
-		std::stringstream ss;
+		boost::posix_time::ptime timeFromString;
+		try {
+		    timeFromString = boost::posix_time::from_iso_string(dateTimeString);
+		}
+		catch (...)
+		{
+			std::string str = dateTimeString;
+			boost::to_upper(str);
+			if (str == "NOW") {
+				timeFromString = boost::posix_time::microsec_clock::local_time();
+			}
+			else {
+				return false;
+			}
+		}
 
-		// do not delete this memory by yourself
-		boost::posix_time::time_input_facet* facet = new boost::posix_time::time_input_facet();
-		facet->set_iso_extended_format();
-		ss.imbue(std::locale(ss.getloc(), facet));
-		ss.str(dateTimeString);
-		boost::posix_time::ptime timeFromString; 
-		ss >> timeFromString;
 		dateTime(timeFromString);
 		return true;
 	}
@@ -114,7 +121,7 @@ namespace OpcUaStackCore
 		std::string str;
 		try 
 		{
-			str = boost::posix_time::to_iso_extended_string(dateTime());
+			str = boost::posix_time::to_iso_string(dateTime());
 		} catch(std::exception&) {
 			return "unknown";
 		}

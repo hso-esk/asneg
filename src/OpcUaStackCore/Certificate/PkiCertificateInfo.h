@@ -1,5 +1,5 @@
 /*
-   Copyright 2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2016 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -30,8 +30,19 @@ namespace OpcUaStackCore
 	class DLLEXPORT PkiCertificateInfo
 	{
 	  public:
+		typedef std::map<std::string, std::string> ExtensionMap;
+
 		PkiCertificateInfo(void);
 		~PkiCertificateInfo(void);
+
+		void version(uint32_t version);
+	    uint32_t version(void);
+	    void serialNumber(uint32_t serialNumber);
+	    uint32_t serialNumber(void);
+		void validTimeNotAfter(const boost::posix_time::ptime& validTimeNotAfter);
+		boost::posix_time::ptime& validTimeNotAfter(void);
+		void validTimeNotBefore(const boost::posix_time::ptime& validTimeNotBefore);
+		boost::posix_time::ptime& validTimeNotBefore(void);
 
 		void URI(const std::string& URI);
 		std::string& URI(void);
@@ -41,18 +52,25 @@ namespace OpcUaStackCore
 		std::vector<std::string>& dnsNames(void);
 		void email(const std::vector<std::string>& email);
 		std::vector<std::string>& email(void);
-		void validTimeNotAfter(const boost::posix_time::ptime& validTimeNotAfter);
-		boost::posix_time::ptime& validTimeNotAfter(void);
-		void validTimeNotBefore(const boost::posix_time::ptime& validTimeNotBefore);
-		boost::posix_time::ptime& validTimeNotBefore(void);
+
+		ExtensionMap& extensionMap(void);
+		bool existExtension(const std::string& extName);
+		std::string extension(const std::string& extName);
+		bool extension(const std::string& extName, const std::string& extValue);
 
 	  private:
+
+	    boost::posix_time::ptime validTimeNotAfter_;
+	    boost::posix_time::ptime validTimeNotBefore_;
+	    uint32_t version_;
+	    uint32_t serialNumber_;
+
+	    ExtensionMap extensionMap_;
+
 	    std::string URI_;
 	    std::vector<std::string> ipAddresses_;
 	    std::vector<std::string> dnsNames_;
 	    std::vector<std::string> emails_;
-	    boost::posix_time::ptime validTimeNotAfter_;
-	    boost::posix_time::ptime validTimeNotBefore_;
 	};
 
 }

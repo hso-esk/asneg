@@ -28,6 +28,12 @@ namespace OpcUaStackServer
 	{
 	}
 
+	void
+	ReferenceItemMap::clear(void)
+	{
+		referenceItemMultiMap_.clear();
+	}
+
 	bool 
 	ReferenceItemMap::add(ReferenceType referenceType, ReferenceItem::SPtr referenceItem)
 	{
@@ -118,7 +124,7 @@ namespace OpcUaStackServer
 		ReferenceItemMultiMap::iterator it;
 		for (it = referenceItemMultiMap_.begin(); it != referenceItemMultiMap_.end(); it++) {
 			ReferenceItem::SPtr referenceItem = it->second;
-			ReferenceItem::SPtr newReferenceItem = ReferenceItem::construct();
+			ReferenceItem::SPtr newReferenceItem = constructSPtr<ReferenceItem>();
 
 			referenceItem->copyTo(newReferenceItem);
 

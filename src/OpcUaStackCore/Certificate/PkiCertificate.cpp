@@ -28,77 +28,13 @@ namespace OpcUaStackCore
 	// ------------------------------------------------------------------------
 	// ------------------------------------------------------------------------
 	//
-	// PkiExtensionEntry
-	//
-	// ------------------------------------------------------------------------
-	// ------------------------------------------------------------------------
-	PkiExtensionEntry::PkiExtensionEntry(void)
-	: key_("")
-	, value_("")
-	{
-	}
-
-	PkiExtensionEntry::PkiExtensionEntry(const std::string& key, const std::string& value)
-	: key_(key)
-	, value_(value)
-	{
-	}
-
-	PkiExtensionEntry::~PkiExtensionEntry(void)
-	{
-	}
-
-	void
-	PkiExtensionEntry::key(const std::string& key)
-	{
-		key_ = key;
-	}
-
-	std::string&
-	PkiExtensionEntry::key(void)
-	{
-		return key_;
-	}
-
-	void
-	PkiExtensionEntry::value(const std::string& value)
-	{
-		value_ = value;
-	}
-
-	std::string&
-	PkiExtensionEntry::value(void)
-	{
-		return value_;
-	}
-
-	// ------------------------------------------------------------------------
-	// ------------------------------------------------------------------------
-	//
 	// PkiCertificate
 	//
 	// ------------------------------------------------------------------------
 	// ------------------------------------------------------------------------
-	bool PkiCertificate::loadCryptoStrings_ = false;
-	std::list<std::string> PkiCertificate::cryptoStringErrorList_;
-	PkiExtensionEntry::Vec PkiCertificate::pkiEntensionEntryVec_;
-	bool PkiCertificate::init_ = false;
-
 	PkiCertificate::PkiCertificate(void)
 	: x509Cert_(nullptr)
-	, startTime_(time(NULL))
 	{
-		if (!init_) {
-			init_ = true;
-
-			// set pki extension entry
-			pkiEntensionEntryVec_.push_back(PkiExtensionEntry("basicConstraints", "critical, CA:FALSE"));
-			pkiEntensionEntryVec_.push_back(PkiExtensionEntry("nsComment", "\"Generated with OpcUaStack using OpenSSL\""));
-			pkiEntensionEntryVec_.push_back(PkiExtensionEntry("subjectKeyIdentifier", "hash"));
-			pkiEntensionEntryVec_.push_back(PkiExtensionEntry("authorityKeyIdentifier", "keyid, issuer:always"));
-			pkiEntensionEntryVec_.push_back(PkiExtensionEntry("keyUsage", "critical, nonRepudiation, digitalSignature, keyEncipherment, dataEncipherment, keyCertSign"));
-			pkiEntensionEntryVec_.push_back(PkiExtensionEntry("extendedKeyUsage", "critical, serverAuth,clientAuth"));
-		}
 	}
 
 	PkiCertificate::~PkiCertificate(void)
@@ -137,9 +73,9 @@ namespace OpcUaStackCore
 			}
 		}
 
-		// set start time
+		// set serial number
 		if (success) {
-			resultCode = ASN1_INTEGER_set(X509_get_serialNumber(x509Cert_), (long)startTime_);
+			resultCode = ASN1_INTEGER_set(X509_get_serialNumber(x509Cert_), (long)pkiCertificateInfo.serialNumber());
 			if (!resultCode) {
 				success = false;
 				openSSLError();
@@ -318,17 +254,36 @@ namespace OpcUaStackCore
         X509V3_CTX ctx;
         X509V3_set_ctx(&ctx, x509Cert_, x509Cert_, NULL, NULL, 0);
         if (success) {
-        	X509_EXTENSION *pExt = 0;
-            for (uint32_t idx = 0; idx < pkiEntensionEntryVec_.size(); idx++ )
-            {
-                pExt = X509V3_EXT_conf(
+        	PkiCertificateInfo::ExtensionMap::iterator it;
+        	for (it = pkiCertificateInfo.extensionMap().begin(); it != pkiCertificateInfo.extensionMap().end(); it++) {
+        		std::string extName = it->first;
+        		std::string extValue = it->second;
+
+        		// get nid from name
+        		int nid = OBJ_ln2nid(extName.c_str());
+        		if (nid < 1) {
+        			nid = OBJ_sn2nid(extName.c_str());
+        			if (nid < 1) {
+        				std::stringstream ss;
+        				ss << "extension name " << extName << " not exist";
+        				success = false;
+        				openSSLError(ss.str());
+        				break;
+        			}
+        		}
+
+            	X509_EXTENSION *pExt = 0;
+                pExt = X509V3_EXT_conf_nid(
                 	NULL, &ctx,
-                	(char*)pkiEntensionEntryVec_[idx].key().c_str(),
-                	(char*)pkiEntensionEntryVec_[idx].value().c_str(
-                ));
+                	nid,
+                	(char*)extValue.c_str()
+                );
                 if (!pExt) {
+                	std::stringstream ss;
+                	ss << "create extension " << extName << " error";
                 	success = false;
-                	openSSLError();
+                	openSSLError(ss.str());
+                	break;
                 }
                 else
                 {
@@ -343,6 +298,7 @@ namespace OpcUaStackCore
             }
         }
 
+#if 0
         if (success) {
         	std::vector<std::string>::iterator it;
         	std::string subjectAltNameValue;
@@ -385,6 +341,7 @@ namespace OpcUaStackCore
             }
 
         }
+#endif
 
 	    if (success) {
 	        // sign the certificate
@@ -430,18 +387,16 @@ namespace OpcUaStackCore
 			return false;
 		}
 
-		// set version (V3)
+		// get version
 		if (success) {
-			resultCode = X509_set_version(x509Cert_, 2);
-			if (!resultCode) {
-				success = false;
-				openSSLError();
-			}
+			uint32_t version = X509_get_version(x509Cert_);
+			pkiCertificateInfo.version(version);
 		}
 
-		// get start time
+		// get serial number
 		if (success) {
-			startTime_ = (time_t)ASN1_INTEGER_get(X509_get_serialNumber(x509Cert_));
+			uint32_t serialNumber = ASN1_INTEGER_get(X509_get_serialNumber(x509Cert_));
+			pkiCertificateInfo.serialNumber(serialNumber);
 		}
 
 		// get subject name
@@ -509,6 +464,7 @@ namespace OpcUaStackCore
 			}
 		}
 
+		// get public key
 		if (success) {
 			EVP_PKEY* pkey = X509_get_pubkey(x509Cert_);
 			if (pkey == nullptr) {
@@ -534,49 +490,51 @@ namespace OpcUaStackCore
 					break;
 				}
 
-				char buf[1024];
+				// get name from extension
+				char extName[1024];
 				ASN1_OBJECT* object = X509_EXTENSION_get_object(ext);
-				OBJ_obj2txt(buf, 1024, object, 0);
-				std::cout << "XXXXXX" << buf << std::endl;
 
-				ASN1_OCTET_STRING *value = X509_EXTENSION_get_data(ext);
+				// FIXME: test
+				//int nid = OBJ_obj2nid(object);
+				//std::cout << "nid: " << nid << " " << OBJ_nid2sn(nid) << std::endl;
 
-				const unsigned char* octet_str_data = value->data;
-				long xlen;
-				int tag, xclass;
-				int ret = ASN1_get_object(&octet_str_data, &xlen, &tag, &xclass, value->length);
-				printf("value: [%d] %s\n", xlen, octet_str_data);
+				//const char *	OBJ_nid2sn(int n);
+				//int		OBJ_obj2nid(const ASN1_OBJECT *o);
+
+
+				OBJ_obj2txt(extName, 1024, object, 0);
+
+
+				// get value from extension
+				BIO *bio = BIO_new(BIO_s_mem());
+				if (bio == nullptr) {
+					success = false;
+					openSSLError("bio memory allocation for extension error");
+					break;
+				}
+
+				if(!X509V3_EXT_print(bio, ext, 0, 0)){
+					success = false;
+					openSSLError();
+					break;
+				}
+
+				BUF_MEM *bptr = NULL;
+				BIO_flush(bio);
+				BIO_get_mem_ptr(bio, &bptr);
+				std::string extValue(bptr->data, bptr->length);
+
+				pkiCertificateInfo.extension(extName, extValue);
+
+				BIO_free (bio);
 			}
 		}
-
-#if 0
-
-
-	    if (success) {
-	        // sign the certificate
-	        const EVP_MD* digest = EVP_sha1();
-	        if (!digest) {
-	        	success = false;
-	        	openSSLError();
-	        }
-
-	        if (success) {
-	        	EVP_PKEY* pKey = issuerPrivateKey.privateKey();
-	            resultCode = X509_sign(x509Cert_, pKey, digest);
-	            if (!resultCode) {
-		        	success = false;
-		        	openSSLError();
-		        }
-	        }
-	    }
 
 	    if (!success) {
 	       X509_free (x509Cert_);
 	       x509Cert_ = nullptr;
 	    }
 
-		return true;
-#endif
 		return success;
 	}
 
@@ -731,6 +689,86 @@ namespace OpcUaStackCore
 
 	    BIO_free (bio);
 		return true;
+	}
+
+	bool
+	PkiCertificate::getSignatureAlgorithm(std::string& signatureAlgorithm)
+	{
+		BIO *bio = BIO_new(BIO_s_mem());
+		if (i2a_ASN1_OBJECT(bio, x509Cert_->cert_info->signature->algorithm) <= 0){
+			openSSLError();
+			BIO_free (bio);
+			return false;
+		}
+
+		BUF_MEM *bptr = NULL;
+		BIO_flush(bio);
+		BIO_get_mem_ptr(bio, &bptr);
+		signatureAlgorithm.assign(bptr->data, bptr->length);
+
+		BIO_free (bio);
+		return true;
+	}
+
+	bool
+	PkiCertificate::getSignature(std::string& signature)
+	{
+		BIO *bio = BIO_new(BIO_s_mem());
+		if (X509_signature_dump(bio, x509Cert_->signature, 9) <= 0) {
+			openSSLError();
+			BIO_free (bio);
+			return false;
+		}
+
+		BUF_MEM *bptr = NULL;
+		BIO_flush(bio);
+		BIO_get_mem_ptr(bio, &bptr);
+		signature.assign(bptr->data, bptr->length);
+
+		BIO_free (bio);
+		return true;
+	}
+
+	bool
+	PkiCertificate::getPublicKeyAlgorithm(std::string& publicKeyAlgorithm)
+	{
+		BIO *bio = BIO_new(BIO_s_mem());
+		if (i2a_ASN1_OBJECT(bio, x509Cert_->cert_info->key->algor->algorithm) <= 0){
+			openSSLError();
+			BIO_free (bio);
+			return false;
+		}
+
+		BUF_MEM *bptr = NULL;
+		BIO_flush(bio);
+		BIO_get_mem_ptr(bio, &bptr);
+		publicKeyAlgorithm.assign(bptr->data, bptr->length);
+
+		BIO_free (bio);
+		return true;
+	}
+
+	bool
+	PkiCertificate::getPublicKey(std::string& publicKey)
+	{
+		EVP_PKEY *pkey = nullptr;
+		pkey = X509_get_pubkey(x509Cert_);
+		if (pkey == nullptr) {
+			openSSLError("unable to open public key");
+			return false;
+		}
+
+		BIO *bio = BIO_new(BIO_s_mem());
+		EVP_PKEY_print_public(bio, pkey, 16, NULL);
+	    EVP_PKEY_free(pkey);
+
+	    BUF_MEM *bptr = NULL;
+	    BIO_flush(bio);
+	    BIO_get_mem_ptr(bio, &bptr);
+	    publicKey.assign(bptr->data, bptr->length);
+
+	    BIO_free (bio);
+	    return true;
 	}
 
 }

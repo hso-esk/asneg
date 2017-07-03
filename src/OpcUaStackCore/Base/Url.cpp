@@ -1,5 +1,5 @@
 /*
-   Copyright 2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2017 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -15,8 +15,11 @@
    Autor: Kai Huebl (kai@huebl-sgh.de)
  */
 
-#include "OpcUaStackCore/Base/Url.h"
 #include <boost/lexical_cast.hpp>
+#include <boost/regex.hpp>
+#include <boost/asio.hpp>
+#include <boost/algorithm/string.hpp>
+#include "OpcUaStackCore/Base/Url.h"
 
 namespace OpcUaStackCore
 {
@@ -51,10 +54,16 @@ namespace OpcUaStackCore
 		return good_;
 	}
 
-	std::string 
+	std::string
 	Url::protocol(void) const
 	{
 		return protocol_;
+	}
+
+	void
+	Url::protocol(const std::string& protocol)
+	{
+		protocol_ = protocol;
 	}
 		
 	std::string 
@@ -62,11 +71,23 @@ namespace OpcUaStackCore
 	{
 		return host_;
 	}
+
+	void
+	Url::host(const std::string& host)
+	{
+		host_ = host;
+	}
 		
 	int32_t 
 	Url::port(void)
 	{
 		return port_;
+	}
+
+	void
+	Url::port(int32_t port)
+	{
+		port_ = port;
 	}
 
 	std::string
@@ -83,10 +104,41 @@ namespace OpcUaStackCore
 		return path_;
 	}
 
+	void
+	Url::path(const std::string& path)
+	{
+		path_ = path;
+	}
+
 	std::string 
 	Url::query(void)
 	{
 		return query_;
+	}
+
+	void
+	Url::query(const std::string& query)
+	{
+		query_ = query;
+	}
+
+	std::string
+	Url::url(void)
+	{
+		std::stringstream ss;
+		ss << protocol_ << "://" << host_;
+		if (port_ != -1) {
+			ss << ":" << port_;
+		}
+		if (path_ != "") {
+			ss << "/" << path_;
+		}
+		if (query_ != "") {
+			ss << "?" << query_;
+		}
+		url_ = ss.str();
+
+		return url_;
 	}
 
 	void 
@@ -99,6 +151,75 @@ namespace OpcUaStackCore
 		port_ = -1;
 		path_ = "";
 		query_ = "";
+	}
+
+	bool
+	Url::isLocalAddress(void)
+	{
+		// check localhost
+		if (boost::to_upper_copy(host_) == "LOCALHOST") return true;
+
+		// convert string to ip address
+		boost::system::error_code ec;
+		boost::asio::ip::address_v4 ipv4;
+		ipv4 = boost::asio::ip::address_v4::from_string(host_, ec);
+		if (ec) {
+			return false;
+		}
+
+		// check ip address
+		return ipv4.to_ulong() == 0x7f000001;
+	}
+
+	bool
+	Url::isAnyAddress(void)
+	{
+		return host_ == "0.0.0.0";
+	}
+
+	bool
+	Url::isIPAddress(void)
+	{
+		if (!boost::regex_match(host_, boost::regex("\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}"))) {
+			return false;
+		}
+
+		// convert string to ip address
+		boost::system::error_code ec;
+		boost::asio::ip::address_v4 ipv4;
+		ipv4 = boost::asio::ip::address_v4::from_string(host_, ec);
+		if (ec) {
+			return false;
+		}
+		return true;
+	}
+
+	bool
+	Url::isHostAddress(void)
+	{
+		return !isLocalAddress() && !isIPAddress();
+	}
+
+	bool
+	Url::normalizeHost(void)
+	{
+		if (!boost::regex_match(host_, boost::regex("\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}"))) {
+			return false;
+		}
+
+		std::vector<std::string>::iterator it;
+		std::vector<std::string> ipVec;
+		boost::split(ipVec, host_, boost::is_any_of("."));
+
+		for (uint32_t idx=0; idx<ipVec.size(); idx++) {
+			std::string str = ipVec[idx];
+			str.erase(0, str.find_first_not_of("0"));
+			if (str.empty()) str = "0";
+			ipVec[idx] = str;
+		}
+
+		host_ = boost::join(ipVec, ".");
+		return true;
 	}
 
 	size_t
@@ -233,6 +354,8 @@ namespace OpcUaStackCore
 		// parse query
 		size_t beginQuery = endPath;
 		query_ = url_.substr(beginQuery);
+
+		normalizeHost();
 	}
 
 }

@@ -73,7 +73,7 @@ namespace OpcUaStackServer
 			.parameter("Trx", serviceTransaction->transactionId())
 			.parameter("NumberNodes", nodes);
 
-		BrowseResultArray::SPtr browseResultArray = BrowseResultArray::construct();
+		BrowseResultArray::SPtr browseResultArray = constructSPtr<BrowseResultArray>();
 		browseResponse->results(browseResultArray);
 		browseResultArray->resize(nodes);
 
@@ -81,7 +81,7 @@ namespace OpcUaStackServer
 			BrowseDescription::SPtr browseDescription;
 			browseRequest->nodesToBrowse()->get(idx, browseDescription);
 
-			BrowseResult::SPtr browseResult = BrowseResult::construct();
+			BrowseResult::SPtr browseResult = constructSPtr<BrowseResult>();
 			browseResultArray->set(idx, browseResult);
 
 			ReferenceDescriptionVec::iterator it;
@@ -89,7 +89,7 @@ namespace OpcUaStackServer
 			OpcUaStatusCode statusCode = browseNode(browseDescription, referenceDescriptionVec); 
 			browseResult->statusCode(statusCode);
 
-			ReferenceDescriptionArray::SPtr referenceDescriptionArray = ReferenceDescriptionArray::construct();
+			ReferenceDescriptionArray::SPtr referenceDescriptionArray = constructSPtr<ReferenceDescriptionArray>();
 			referenceDescriptionArray->resize(referenceDescriptionVec.size());
 			browseResult->references(referenceDescriptionArray);
 			for (it = referenceDescriptionVec.begin(); it != referenceDescriptionVec.end(); it++) {
@@ -125,8 +125,82 @@ namespace OpcUaStackServer
 	void 
 	ViewService::receiveTranslateBrowsePathsToNodeIdsRequest(ServiceTransaction::SPtr serviceTransaction)
 	{
-		// FIXME:
-		serviceTransaction->statusCode(BadInternalError);
+		ServiceTransactionTranslateBrowsePathsToNodeIds::SPtr trx = boost::static_pointer_cast<ServiceTransactionTranslateBrowsePathsToNodeIds>(serviceTransaction);
+		TranslateBrowsePathsToNodeIdsRequest::SPtr request = trx->request();
+		TranslateBrowsePathsToNodeIdsResponse::SPtr response = trx->response();
+
+		BrowsePathArray::SPtr browsePaths = request->browsePaths();
+		if (browsePaths->size() == 0) {
+			Log(Debug, "no browse path elements exist")
+				.parameter("TransactionId", serviceTransaction->transactionId());
+			serviceTransaction->statusCode(Success);
+			serviceTransaction->componentSession()->send(serviceTransaction);
+			return;
+		}
+
+		response->results()->resize(browsePaths->size());
+
+		for (uint32_t idx=0; idx<browsePaths->size(); idx++) {
+
+
+			BrowsePath::SPtr browsePath;
+			if (!browsePaths->get(idx, browsePath)) {
+				Log(Debug, "browse paths invalid")
+					.parameter("TransactionId", serviceTransaction->transactionId());
+
+				serviceTransaction->statusCode(BadInternalError);
+				serviceTransaction->componentSession()->send(serviceTransaction);
+				return;
+			}
+
+			OpcUaNodeId::SPtr actualNode = browsePath->startingNode();
+			RelativePath* relativePath = &browsePath->relativePath();
+
+			BrowsePathResult::SPtr result = constructSPtr<BrowsePathResult>();
+			result->statusCode(Success);
+			response->results()->push_back(result);
+
+			if (relativePath->elements()->size() == 0) {
+				result->statusCode(BadInvalidArgument);
+				continue;
+			}
+
+			for (uint32_t idx=0; idx<relativePath->elements()->size(); idx++) {
+				RelativePathElement::SPtr relativePathElement;
+				if (!relativePath->elements()->get(idx, relativePathElement)) {
+					result->statusCode(BadInvalidArgument);
+					continue;
+				}
+
+				Log(Debug, "TranslateBrowsePathsToNodeId")
+					.parameter("NodeId", *actualNode);
+				Log(Debug, "  --")
+				    .parameter("PathElement", relativePathElement->targetName().toString());
+
+				if (!getNodeFromPathElement(*actualNode, relativePathElement->targetName())) {
+					Log(Debug, "node id not found")
+						.parameter("NodeId", *actualNode)
+						.parameter("PathElement", relativePathElement->targetName().toString());
+					result->statusCode(BadNotFound);
+					break;
+				}
+			}
+
+			if (result->statusCode() == Success) {
+				result->targets()->resize(1);
+
+				BrowsePathTarget::SPtr browsePathTarget = constructSPtr<BrowsePathTarget>();
+
+				OpcUaExpandedNodeId::SPtr targetNodeId = constructSPtr<OpcUaExpandedNodeId>();
+				actualNode->copyTo(*targetNodeId);
+
+				browsePathTarget->tragetId(targetNodeId);
+				browsePathTarget->remainingPathIndex(0xFFFFFFFF);
+				result->targets()->push_back(browsePathTarget);
+			}
+		}
+
+		serviceTransaction->statusCode(Success);
 		serviceTransaction->componentSession()->send(serviceTransaction);
 	}
 
@@ -185,7 +259,7 @@ namespace OpcUaStackServer
 				continue;
 			}
 
-			ReferenceDescription::SPtr referenceDescription = ReferenceDescription::construct();
+			ReferenceDescription::SPtr referenceDescription = constructSPtr<ReferenceDescription>();
 			referenceDescriptionVec.push_back(referenceDescription);
 
 			OpcUaExpandedNodeId::SPtr targetNodeId = constructSPtr<OpcUaExpandedNodeId>();
@@ -254,5 +328,33 @@ namespace OpcUaStackServer
 		}
 
 		return BadNotFound;
+	}
+
+	bool
+	ViewService::getNodeFromPathElement(OpcUaNodeId& nodeId, OpcUaQualifiedName& pathElement)
+	{
+		BaseNodeClass::SPtr baseNodeClass = informationModel_->find(nodeId);
+		if (baseNodeClass.get() == nullptr) {
+			return false;
+		}
+
+		ReferenceItemMap& referenceItemMap = baseNodeClass->referenceItemMap();
+		ReferenceItemMultiMap::iterator it;
+		for (it = referenceItemMap.referenceItemMultiMap().begin(); it != referenceItemMap.referenceItemMultiMap().end(); it++) {
+			OpcUaNodeId referenceTypeNodeId = it->first;
+			ReferenceItem::SPtr referenceItem = it->second;
+
+			BaseNodeClass::SPtr baseNodeClassTarget = informationModel_->find(referenceItem->nodeId_);
+			if (baseNodeClassTarget.get() == nullptr) {
+				continue;
+			}
+
+			if (baseNodeClassTarget->browseName().data() == pathElement) {
+				referenceItem->nodeId_.copyTo(nodeId);
+				return true;
+			}
+		}
+
+		return false;
 	}
 }

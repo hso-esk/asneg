@@ -29,7 +29,8 @@ namespace OpcUaStackServer
 
 	typedef std::multimap<OpcUaNodeId, ReferenceItem::SPtr> ReferenceItemMultiMap;
 
-	class DLLEXPORT ReferenceItemMap : public ObjectPool<ReferenceItemMap>
+	class DLLEXPORT ReferenceItemMap
+	: public Object
 	{
 	  public:
 		typedef boost::shared_ptr<ReferenceItemMap> SPtr;
@@ -37,6 +38,7 @@ namespace OpcUaStackServer
 		ReferenceItemMap(void);
 		~ReferenceItemMap(void);
 
+		void clear(void);
 		bool add(ReferenceType referenceType, ReferenceItem::SPtr referenceItem);
 		bool add(ReferenceType referenceType, bool isForward, OpcUaNodeId& nodeId);
 		bool add(OpcUaNodeId& referenceTypeNodeId, ReferenceItem::SPtr referenceItem);

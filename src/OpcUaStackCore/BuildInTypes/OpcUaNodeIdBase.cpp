@@ -42,6 +42,22 @@ namespace OpcUaStackCore
 	{
 	}
 
+	OpcUaNodeIdBase::OpcUaNodeIdBase(OpcUaUInt32 nodeId, OpcUaUInt16 namespaceIndex)
+	: Object()
+	, namespaceIndex_(0)
+	, nodeIdValue_()
+	{
+		set(nodeId, namespaceIndex);
+	}
+
+	OpcUaNodeIdBase::OpcUaNodeIdBase(const std::string& nodeId, OpcUaUInt16 namespaceIndex)
+	: Object()
+	, namespaceIndex_(0)
+	, nodeIdValue_()
+	{
+		set(nodeId, namespaceIndex);
+	}
+
 	OpcUaNodeIdBase::~OpcUaNodeIdBase(void)
 	{
 	}
@@ -297,6 +313,12 @@ namespace OpcUaStackCore
 	void 
 	OpcUaNodeIdBase::encodingFlag(OpcUaByte expandedEncodingFlag)
 	{
+	}
+
+	void
+	OpcUaNodeIdBase::out(std::ostream& os)
+	{
+		os << *this;
 	}
 
 	void 

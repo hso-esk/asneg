@@ -1,5 +1,5 @@
 /*
-   Copyright 2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2017 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -23,6 +23,7 @@
 #include "OpcUaStackCore/Base/ObjectPool.h"
 #include "OpcUaStackCore/BuildInTypes/OpcUaAttributeId.h"
 #include "OpcUaStackServer/AddressSpaceModel/BaseNodeClass.h"
+#include "OpcUaStackServer/InformationModel/MethodMap.h"
 #include <map>
 
 using namespace OpcUaStackCore;
@@ -33,7 +34,7 @@ namespace OpcUaStackServer
 	typedef std::map<OpcUaNodeId, BaseNodeClass::SPtr> InformationModelMap;
 
 	class DLLEXPORT InformationModel
-	: public ObjectPool<InformationModel>
+	: public Object
 	{
 	  public:
 		typedef boost::shared_ptr<InformationModel> SPtr;
@@ -41,6 +42,7 @@ namespace OpcUaStackServer
 		InformationModel(void);
 		~InformationModel(void);
 
+		void clear(void);
 		bool insert(BaseNodeClass::SPtr baseNodeClass);
 		BaseNodeClass::SPtr find(const OpcUaNodeId& opcUaNodeId);
 		BaseNodeClass::SPtr find(OpcUaNodeId::SPtr opcUaNodeId);
@@ -49,6 +51,7 @@ namespace OpcUaStackServer
 		uint32_t size(void);
 
 		InformationModelMap& informationModelMap(void);
+		MethodMap& methodMap(void);
 
 		void checkForwardReferences(void);
 
@@ -65,6 +68,7 @@ namespace OpcUaStackServer
 	  private:
 		boost::mutex mutex_;
 		InformationModelMap informationModelMap_;
+		MethodMap methodMap_;
 
 	};
 

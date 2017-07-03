@@ -1,5 +1,5 @@
 /*
-   Copyright 2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2017 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -33,17 +33,29 @@ namespace OpcUaStackCore
 		~Url(void);
 
 		void url(const std::string& url);
+		std::string url(void);
 
 		bool good(void);
 		std::string protocol(void) const;
+		void protocol(const std::string& protocol);
 		std::string host(void);
+		void host(const std::string& host);
 		int32_t port(void);
+		void port(int32_t port);
 		std::string portToString(void);
 		std::string path(void);
+		void path(const std::string& path);
 		std::string query(void);
+		void query(const std::string& query);
 		void clear(void);
+
+		bool isLocalAddress(void);
+		bool isAnyAddress(void);
+		bool isIPAddress(void);
+		bool isHostAddress(void);
 	  
 	  private:
+		bool normalizeHost(void);
 		size_t findString(const std::string& str, size_t pos = 0);
 		void parse(void);
 

@@ -1,0 +1,36 @@
+
+001. Monitored Start/Stop Callback in Anwendung 
+===============================================
+
+Erzeuge Monitored Item fuer N1 -> Start Callback in Anwendung
+Lösche Monitored Item fuer N1 -> Stop Callback in Anwendung
+
+Erzeuge Monitored Item fuer N1 -> Start Callback in Anwendung
+Erzeuge Monitored Item fuer N1
+Lösche Monitored Item fuer N1
+Lösche Monitored Item fuer N1 -> FEHLER Keine Callback
+
+
+
+002. Complex Data Type erweitern 
+================================
+
+- Namespace sollte aus Konfiguration kommen
+- Folder sollte aus Konfiguration kommen
+- Eine Variable einer Klasse kann eine komplexe Variable sein
+
+
+
+003. NodeSetNamespace Klasse 
+============================
+
+Diese Klasse enthaelt statische Variablen. Wird diese im OpcUaDesigner
+in einer DLL unter Windows mehrfach verwendet, so existieren mehrere
+Variablen.
+
+
+005. OpcUaVariant Array Laenge 0
+================================
+
+Wird in einer OpcUaVariant Variable ein String Array abgelegt und hat das
+Array die Länge 0, so wird die Variable nicht korrekt übertragen.

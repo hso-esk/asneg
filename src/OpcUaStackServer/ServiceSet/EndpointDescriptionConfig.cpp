@@ -1,5 +1,5 @@
 /*
-   Copyright 2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2017 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -78,7 +78,7 @@ namespace OpcUaStackServer
 		for (it = endpointDescriptionVec.begin(); it != endpointDescriptionVec.end(); it++) {
 		    Config* config = &*it; 
 
-			EndpointDescription::SPtr endpointDescription = EndpointDescription::construct();
+			EndpointDescription::SPtr endpointDescription = constructSPtr<EndpointDescription>();
 			endpointDescriptionArray->set(idx, endpointDescription);
 			idx++;
 
@@ -118,7 +118,7 @@ namespace OpcUaStackServer
 			}
 			endpointDescription->applicationDescription()->applicationName().text(stringValue);
 
-			endpointDescription->applicationDescription()->applicationType(ApplicationType_Server);
+			endpointDescription->applicationDescription()->applicationType(AT_Server);
 
 			if (config->getConfigParameter("GatewayServerUri", stringValue) == true) {
 				endpointDescription->applicationDescription()->gatewayServerUri(stringValue);
@@ -220,10 +220,10 @@ namespace OpcUaStackServer
 		}
 
 		uint32_t idx = 0;
-		UserTokenPolicyArray::SPtr userTokenPolicyArray = UserTokenPolicyArray::construct();
+		UserTokenPolicyArray::SPtr userTokenPolicyArray = constructSPtr<UserTokenPolicyArray>();
 		userTokenPolicyArray->resize(userTokenPolicyVec.size());
 		for (it = userTokenPolicyVec.begin(); it != userTokenPolicyVec.end(); it++) {
-			UserTokenPolicy::SPtr userTokenPolicy = UserTokenPolicy::construct();
+			UserTokenPolicy::SPtr userTokenPolicy = constructSPtr<UserTokenPolicy>();
 			userTokenPolicyArray->set(idx, userTokenPolicy);
 			idx++;
 

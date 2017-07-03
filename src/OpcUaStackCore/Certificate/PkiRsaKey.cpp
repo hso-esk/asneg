@@ -91,6 +91,52 @@ namespace OpcUaStackCore
 		return true;
 	}
 
+	uint32_t
+	PkiRsaKey::keyLength(void)
+	{
+		int32_t size = EVP_PKEY_bits (key_);
+	    if (size < 0) {
+	    	openSSLError();
+	    	return 0;
+	    }
+		return size;
+	}
+
+	bool
+	PkiRsaKey::toHexStringPublicKey(std::string& hexString)
+	{
+		hexString = "";
+
+		BIO* bio = BIO_new(BIO_s_mem());
+		if (bio == nullptr) {
+			openSSLError("bio memory allocation error");
+			return false;
+		}
+
+		EVP_PKEY_print_public(bio, key_, 0, NULL);
+
+		BUF_MEM* mem = NULL;
+		BIO_get_mem_ptr(bio, &mem);
+		hexString.assign(mem->data, mem->length);
+
+		BIO_free(bio);
+		return true;
+	}
+
+	uint32_t
+	PkiRsaKey::modulus(void)
+	{
+		RSA *rsa = EVP_PKEY_get1_RSA(key_);
+		if (!rsa) {
+		    openSSLError();
+		    return 0;
+		}
+
+		//BN_print(out, rsa->n);
+
+		return 0; //rsa->n;
+	}
+
 	bool
 	PkiRsaKey::writePEMFile(const std::string& fileName, const std::string& password)
 	{

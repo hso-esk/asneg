@@ -29,9 +29,9 @@ namespace OpcUaStackCore
 	// ------------------------------------------------------------------------
 
 	CallRequest::CallRequest(void)
-	: ObjectPool<CallRequest>()
-	, requestHeaderSPtr_(RequestHeader::construct())
-	, callMethodRequestArraySPtr_(CallMethodRequestArray::construct())
+	: Object()
+	, requestHeaderSPtr_(constructSPtr<RequestHeader>())
+	, callMethodRequestArraySPtr_(constructSPtr<CallMethodRequestArray>())
 	{
 	}
 
@@ -66,14 +66,12 @@ namespace OpcUaStackCore
 	void 
 	CallRequest::opcUaBinaryEncode(std::ostream& os) const
 	{
-		//requestHeaderSPtr_->opcUaBinaryEncode(os);
 		callMethodRequestArraySPtr_->opcUaBinaryEncode(os);
 	}
 	
 	void 
 	CallRequest::opcUaBinaryDecode(std::istream& is)
 	{
-		//requestHeaderSPtr_->opcUaBinaryDecode(is);
 		callMethodRequestArraySPtr_->opcUaBinaryDecode(is);
 	}
 }

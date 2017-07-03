@@ -153,7 +153,9 @@ namespace OpcUaStackServer
 	{
 		switch (serviceTransaction->nodeTypeRequest().nodeId<uint32_t>())
 		{
-			case OpcUaId_RegisterForwardRequest_Encoding_DefaultBinary:
+			case OpcUaId_RegisterForwardNodeRequest_Encoding_DefaultBinary:
+			case OpcUaId_RegisterForwardMethodRequest_Encoding_DefaultBinary:
+			case OpcUaId_RegisterForwardGlobalRequest_Encoding_DefaultBinary:
 			case OpcUaId_GetNodeReferenceRequest_Encoding_DefaultBinary:
 			case OpcUaId_NamespaceInfoRequest_Encoding_DefaultBinary:
 			{
@@ -163,6 +165,8 @@ namespace OpcUaStackServer
 			default:
 			{
 				// nothing to do
+				Log(Warning, "receive invalid messsage type")
+				    .parameter("MessageType", serviceTransaction->nodeTypeRequest().nodeId<uint32_t>());
 			}
 		}
 	}

@@ -1,5 +1,5 @@
 /*
-   Copyright 2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2016 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -21,10 +21,10 @@ namespace OpcUaStackCore
 {
 
 	SessionDiagnosticsDataType::SessionDiagnosticsDataType(void)
-	: ObjectPool<SessionDiagnosticsDataType>()
+	: Object()
 	, sessionId_()
 	, sessionName_()
-	, clientDescription_(ApplicationDescription::construct())
+	, clientDescription_(constructSPtr<ApplicationDescription>())
 	, serverUri_()
 	, endpointUri_()
 	, localeIds_(constructSPtr<OpcUaStringArray>())
@@ -258,10 +258,10 @@ namespace OpcUaStackCore
 	//
 	// ------------------------------------------------------------------------
 	// ------------------------------------------------------------------------
-	ExtensionObjectBase::BSPtr
+	ExtensionObjectBase::SPtr
 	SessionDiagnosticsDataType::factory(void)
 	{
-		return SessionDiagnosticsDataType::construct();
+		return constructSPtr<SessionDiagnosticsDataType>();
 	}
 
 	void

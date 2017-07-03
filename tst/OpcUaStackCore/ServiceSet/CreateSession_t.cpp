@@ -51,7 +51,7 @@ BOOST_AUTO_TEST_CASE(CreateSession_Request)
 	OpcUaNumber::opcUaBinaryEncode(ios1, tokenId);
 
 	// encode sequence header
-	sequenceHeaderSPtr = SequenceHeader::construct();
+	sequenceHeaderSPtr = constructSPtr<SequenceHeader>();
 	sequenceHeaderSPtr->sequenceNumber(52);
 	sequenceHeaderSPtr->requestId(2);
 	sequenceHeaderSPtr->opcUaBinaryEncode(ios1);
@@ -66,7 +66,7 @@ BOOST_AUTO_TEST_CASE(CreateSession_Request)
 
 	OpcUaByte clientNonce[1];
 	clientNonce[0] = 0x00;
-	createSessionRequestSPtr = CreateSessionRequest::construct();
+	createSessionRequestSPtr = constructSPtr<CreateSessionRequest>();
 
 	createSessionRequestSPtr->requestHeader()->sessionAuthenticationToken().namespaceIndex(1);
 	createSessionRequestSPtr->requestHeader()->sessionAuthenticationToken().nodeId(opcUaGuidSPtr);
@@ -78,7 +78,7 @@ BOOST_AUTO_TEST_CASE(CreateSession_Request)
 	createSessionRequestSPtr->clientDescription()->applicationUri("urn:localhost:compyny:Unittest");
 	createSessionRequestSPtr->clientDescription()->productUri("urn:company:Unittest");
 	createSessionRequestSPtr->clientDescription()->applicationName().text("company Unittest");
-	createSessionRequestSPtr->clientDescription()->applicationType(ApplicationType_Client);
+	createSessionRequestSPtr->clientDescription()->applicationType(AT_Client);
 
 	createSessionRequestSPtr->endpointUrl("opc.tcp://localhost:4841");
 	createSessionRequestSPtr->sessionName("urn:localhost:company:Unittest");
@@ -90,7 +90,7 @@ BOOST_AUTO_TEST_CASE(CreateSession_Request)
 	createSessionRequestSPtr->opcUaBinaryEncode(ios1);
 
 	// encode MessageHeader
-	messageHeaderSPtr = MessageHeader::construct();
+	messageHeaderSPtr = constructSPtr<MessageHeader>();
 	messageHeaderSPtr->messageType(MessageType_Message);
 	messageHeaderSPtr->messageSize(OpcUaStackCore::count(sb1)+8);
 	messageHeaderSPtr->opcUaBinaryEncode(ios2);
@@ -121,7 +121,7 @@ BOOST_AUTO_TEST_CASE(CreateSession_Request)
 		BOOST_REQUIRE(OpcUaStackCore::compare(ios, ss.str(), pos) == true);
 
 	// decode MessageHeader
-	messageHeaderSPtr = MessageHeader::construct();
+	messageHeaderSPtr = constructSPtr<MessageHeader>();
 	messageHeaderSPtr->opcUaBinaryDecode(ios);
 	BOOST_REQUIRE(messageHeaderSPtr->messageType() == MessageType_Message);
 	
@@ -134,7 +134,7 @@ BOOST_AUTO_TEST_CASE(CreateSession_Request)
 	BOOST_REQUIRE(tokenId == 1);
 	
 	// decode sequence header
-	sequenceHeaderSPtr = SequenceHeader::construct();
+	sequenceHeaderSPtr = constructSPtr<SequenceHeader>();
 	sequenceHeaderSPtr->opcUaBinaryDecode(ios);
 	BOOST_REQUIRE(sequenceHeaderSPtr->sequenceNumber() == 52);
 	BOOST_REQUIRE(sequenceHeaderSPtr->requestId() == 2);
@@ -145,7 +145,7 @@ BOOST_AUTO_TEST_CASE(CreateSession_Request)
 	BOOST_REQUIRE(typeId.nodeId<OpcUaUInt32>() == OpcUaId_CreateSessionRequest_Encoding_DefaultBinary);
 
 	// decode CreateSessionRequest
-	createSessionRequestSPtr = CreateSessionRequest::construct();
+	createSessionRequestSPtr = constructSPtr<CreateSessionRequest>();
 	createSessionRequestSPtr->opcUaBinaryDecode(ios);
 
 	std::string str;
@@ -160,7 +160,7 @@ BOOST_AUTO_TEST_CASE(CreateSession_Request)
 	BOOST_REQUIRE(createSessionRequestSPtr->clientDescription()->applicationUri() == "urn:localhost:compyny:Unittest");
 	BOOST_REQUIRE(createSessionRequestSPtr->clientDescription()->productUri() == "urn:company:Unittest");
 	BOOST_REQUIRE(createSessionRequestSPtr->clientDescription()->applicationName().text().value() == "company Unittest");
-	BOOST_REQUIRE(createSessionRequestSPtr->clientDescription()->applicationType() == ApplicationType_Client);
+	BOOST_REQUIRE(createSessionRequestSPtr->clientDescription()->applicationType() == AT_Client);
 
 
 	BOOST_REQUIRE(createSessionRequestSPtr->endpointUrl() == "opc.tcp://localhost:4841");
@@ -210,7 +210,7 @@ BOOST_AUTO_TEST_CASE(CreateSession_Response)
 	OpcUaNumber::opcUaBinaryEncode(ios1, tokenId);
 
 	// encode sequence header
-	sequenceHeaderSPtr = SequenceHeader::construct();
+	sequenceHeaderSPtr = constructSPtr<SequenceHeader>();
 	sequenceHeaderSPtr->sequenceNumber(52);
 	sequenceHeaderSPtr->requestId(2);
 	sequenceHeaderSPtr->opcUaBinaryEncode(ios1);
@@ -239,12 +239,12 @@ BOOST_AUTO_TEST_CASE(CreateSession_Response)
 	createSessionResponseSPtr->serverEndpoints()->resize(3);
 
 
-	endpointDescriptionSPtr = EndpointDescription::construct();
+	endpointDescriptionSPtr = constructSPtr<EndpointDescription>();
 	endpointDescriptionSPtr->endpointUrl("opt.tcp://localhost:481/0.0.0.0");
 	endpointDescriptionSPtr->applicationDescription()->applicationUri("urn:localhost:compyny:Unittest");
 	endpointDescriptionSPtr->applicationDescription()->productUri("urn:company:Unittest");
 	endpointDescriptionSPtr->applicationDescription()->applicationName().text("company Unittest");
-	endpointDescriptionSPtr->applicationDescription()->applicationType(ApplicationType_Server);
+	endpointDescriptionSPtr->applicationDescription()->applicationType(AT_Server);
 	endpointDescriptionSPtr->applicationDescription()->discoveryUrls()->resize(1);
 	opcUaStringSPtr = constructSPtr<OpcUaString>();
 	opcUaStringSPtr->value("opt.tcp://localhost:4841/0.0.0.0");
@@ -254,7 +254,7 @@ BOOST_AUTO_TEST_CASE(CreateSession_Response)
 	endpointDescriptionSPtr->securityPolicyUri("http://opcfoundation.org/UA/SecurityPolicy#None");
 
 	endpointDescriptionSPtr->userIdentityTokens()->resize(1);
-	userTokenPolicySPtr = UserTokenPolicy::construct();
+	userTokenPolicySPtr = constructSPtr<UserTokenPolicy>();
 	userTokenPolicySPtr->policyId("OpcUaStack");
 	userTokenPolicySPtr->tokenType(UserIdentityTokenType_Anonymous);
 	endpointDescriptionSPtr->userIdentityTokens()->push_back(userTokenPolicySPtr);
@@ -265,12 +265,12 @@ BOOST_AUTO_TEST_CASE(CreateSession_Response)
 	createSessionResponseSPtr->serverEndpoints()->push_back(endpointDescriptionSPtr);
 
 
-	endpointDescriptionSPtr = EndpointDescription::construct();
+	endpointDescriptionSPtr = constructSPtr<EndpointDescription>();
 	endpointDescriptionSPtr->endpointUrl("opt.tcp://localhost:481/0.0.0.0");
 	endpointDescriptionSPtr->applicationDescription()->applicationUri("urn:localhost:compyny:Unittest");
 	endpointDescriptionSPtr->applicationDescription()->productUri("urn:company:Unittest");
 	endpointDescriptionSPtr->applicationDescription()->applicationName().text("company Unittest");
-	endpointDescriptionSPtr->applicationDescription()->applicationType(ApplicationType_Server);
+	endpointDescriptionSPtr->applicationDescription()->applicationType(AT_Server);
 	endpointDescriptionSPtr->applicationDescription()->discoveryUrls()->resize(1);
 	opcUaStringSPtr = constructSPtr<OpcUaString>();
 	opcUaStringSPtr->value("opt.tcp://localhost:4841/0.0.0.0");
@@ -280,7 +280,7 @@ BOOST_AUTO_TEST_CASE(CreateSession_Response)
 	endpointDescriptionSPtr->securityPolicyUri("http://opcfoundation.org/UA/SecurityPolicy#Basic128Rsa15");
 
 	endpointDescriptionSPtr->userIdentityTokens()->resize(1);
-	userTokenPolicySPtr = UserTokenPolicy::construct();
+	userTokenPolicySPtr = constructSPtr<UserTokenPolicy>();
 	userTokenPolicySPtr->policyId("OpcUaStack");
 	userTokenPolicySPtr->tokenType(UserIdentityTokenType_Anonymous);
 	endpointDescriptionSPtr->userIdentityTokens()->push_back(userTokenPolicySPtr);
@@ -291,12 +291,12 @@ BOOST_AUTO_TEST_CASE(CreateSession_Response)
 	createSessionResponseSPtr->serverEndpoints()->push_back(endpointDescriptionSPtr);
 
 
-	endpointDescriptionSPtr = EndpointDescription::construct();	
+	endpointDescriptionSPtr = constructSPtr<EndpointDescription>();
 	endpointDescriptionSPtr->endpointUrl("opt.tcp://localhost:481/0.0.0.0");
 	endpointDescriptionSPtr->applicationDescription()->applicationUri("urn:localhost:compyny:Unittest");
 	endpointDescriptionSPtr->applicationDescription()->productUri("urn:company:Unittest");
 	endpointDescriptionSPtr->applicationDescription()->applicationName().text("company Unittest");
-	endpointDescriptionSPtr->applicationDescription()->applicationType(ApplicationType_Server);
+	endpointDescriptionSPtr->applicationDescription()->applicationType(AT_Server);
 	endpointDescriptionSPtr->applicationDescription()->discoveryUrls()->resize(1);
 	opcUaStringSPtr = constructSPtr<OpcUaString>();
 	opcUaStringSPtr->value("opt.tcp://localhost:4841/0.0.0.0");
@@ -306,7 +306,7 @@ BOOST_AUTO_TEST_CASE(CreateSession_Response)
 	endpointDescriptionSPtr->securityPolicyUri("http://opcfoundation.org/UA/SecurityPolicy#Basic128Rsa15");
 
 	endpointDescriptionSPtr->userIdentityTokens()->resize(1);
-	userTokenPolicySPtr = UserTokenPolicy::construct();
+	userTokenPolicySPtr = constructSPtr<UserTokenPolicy>();
 	userTokenPolicySPtr->policyId("OpcUaStack");
 	userTokenPolicySPtr->tokenType(UserIdentityTokenType_Anonymous);
 	endpointDescriptionSPtr->userIdentityTokens()->push_back(userTokenPolicySPtr);
@@ -321,7 +321,7 @@ BOOST_AUTO_TEST_CASE(CreateSession_Response)
 	createSessionResponseSPtr->opcUaBinaryEncode(ios1);
 
 	// encode MessageHeader
-	messageHeaderSPtr = MessageHeader::construct();
+	messageHeaderSPtr = constructSPtr<MessageHeader>();
 	messageHeaderSPtr->messageType(MessageType_Message);
 	messageHeaderSPtr->messageSize(OpcUaStackCore::count(sb1)+8);
 	messageHeaderSPtr->opcUaBinaryEncode(ios2);
@@ -408,7 +408,7 @@ BOOST_AUTO_TEST_CASE(CreateSession_Response)
 		BOOST_REQUIRE(OpcUaStackCore::compare(ios, ss.str(), pos) == true);
 
 	// decode MessageHeader
-	messageHeaderSPtr = MessageHeader::construct();
+	messageHeaderSPtr = constructSPtr<MessageHeader>();
 	messageHeaderSPtr->opcUaBinaryDecode(ios);
 	BOOST_REQUIRE(messageHeaderSPtr->messageType() == MessageType_Message);
 	
@@ -421,7 +421,7 @@ BOOST_AUTO_TEST_CASE(CreateSession_Response)
 	BOOST_REQUIRE(tokenId == 1);
 	
 	// decode sequence header
-	sequenceHeaderSPtr = SequenceHeader::construct();
+	sequenceHeaderSPtr = constructSPtr<SequenceHeader>();
 	sequenceHeaderSPtr->opcUaBinaryDecode(ios);
 	BOOST_REQUIRE(sequenceHeaderSPtr->sequenceNumber() == 52);
 	BOOST_REQUIRE(sequenceHeaderSPtr->requestId() == 2);
@@ -458,7 +458,7 @@ BOOST_AUTO_TEST_CASE(CreateSession_Response)
 	BOOST_REQUIRE(endpointDescriptionSPtr->applicationDescription()->applicationUri() == "urn:localhost:compyny:Unittest");
 	BOOST_REQUIRE(endpointDescriptionSPtr->applicationDescription()->productUri() == "urn:company:Unittest");
 	BOOST_REQUIRE(endpointDescriptionSPtr->applicationDescription()->applicationName().text().value() == "company Unittest");
-	BOOST_REQUIRE(endpointDescriptionSPtr->applicationDescription()->applicationType() == ApplicationType_Server);
+	BOOST_REQUIRE(endpointDescriptionSPtr->applicationDescription()->applicationType() == AT_Server);
 	BOOST_REQUIRE(endpointDescriptionSPtr->applicationDescription()->discoveryUrls()->size() == 1);
 	endpointDescriptionSPtr->applicationDescription()->discoveryUrls()->get(0, opcUaStringSPtr);
 	BOOST_REQUIRE(opcUaStringSPtr->value() == "opt.tcp://localhost:4841/0.0.0.0");
@@ -479,7 +479,7 @@ BOOST_AUTO_TEST_CASE(CreateSession_Response)
 	BOOST_REQUIRE(endpointDescriptionSPtr->applicationDescription()->applicationUri() == "urn:localhost:compyny:Unittest");
 	BOOST_REQUIRE(endpointDescriptionSPtr->applicationDescription()->productUri() == "urn:company:Unittest");
 	BOOST_REQUIRE(endpointDescriptionSPtr->applicationDescription()->applicationName().text().value() == "company Unittest");
-	BOOST_REQUIRE(endpointDescriptionSPtr->applicationDescription()->applicationType() == ApplicationType_Server);
+	BOOST_REQUIRE(endpointDescriptionSPtr->applicationDescription()->applicationType() == AT_Server);
 	BOOST_REQUIRE(endpointDescriptionSPtr->applicationDescription()->discoveryUrls()->size() == 1);
 	endpointDescriptionSPtr->applicationDescription()->discoveryUrls()->get(0, opcUaStringSPtr);
 	BOOST_REQUIRE(opcUaStringSPtr->value() == "opt.tcp://localhost:4841/0.0.0.0");
@@ -500,7 +500,7 @@ BOOST_AUTO_TEST_CASE(CreateSession_Response)
 	BOOST_REQUIRE(endpointDescriptionSPtr->applicationDescription()->applicationUri() == "urn:localhost:compyny:Unittest");
 	BOOST_REQUIRE(endpointDescriptionSPtr->applicationDescription()->productUri() == "urn:company:Unittest");
 	BOOST_REQUIRE(endpointDescriptionSPtr->applicationDescription()->applicationName().text().value() == "company Unittest");
-	BOOST_REQUIRE(endpointDescriptionSPtr->applicationDescription()->applicationType() == ApplicationType_Server);
+	BOOST_REQUIRE(endpointDescriptionSPtr->applicationDescription()->applicationType() == AT_Server);
 	BOOST_REQUIRE(endpointDescriptionSPtr->applicationDescription()->discoveryUrls()->size() == 1);
 	endpointDescriptionSPtr->applicationDescription()->discoveryUrls()->get(0, opcUaStringSPtr);
 	BOOST_REQUIRE(opcUaStringSPtr->value() == "opt.tcp://localhost:4841/0.0.0.0");

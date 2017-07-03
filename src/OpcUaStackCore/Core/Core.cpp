@@ -33,6 +33,7 @@
 #include "OpcUaStackCore/ServiceSet/DataTypeAttributes.h"
 #include "OpcUaStackCore/ServiceSet/ViewAttributes.h"
 #include "OpcUaStackCore/ServiceSet/ReadRawModifiedDetails.h"
+#include "OpcUaStackCore/ServiceSet/UpdateStructureDataDetails.h"
 #include "OpcUaStackCore/ServiceSet/HistoryData.h"
 
 #include "OpcUaStackCore/StandardDataTypes/BuildInfo.h"
@@ -47,6 +48,7 @@
 #include "OpcUaStackCore/StandardDataTypes/StatusResult.h"
 #include "OpcUaStackCore/StandardDataTypes/SubscriptionDiagnosticsDataType.h"
 #include "OpcUaStackCore/StandardDataTypes/ServerDiagnosticsSummaryDataType.h"
+#include "OpcUaStackCore/StandardDataTypes/Argument.h"
 
 namespace OpcUaStackCore
 {
@@ -110,6 +112,7 @@ namespace OpcUaStackCore
 		ep.registerFactoryElement<ViewAttributes>(OpcUaId_ViewAttributes);
 
 		ep.registerFactoryElement<ReadRawModifiedDetails>(OpcUaId_ReadRawModifiedDetails_Encoding_DefaultBinary);
+		ep.registerFactoryElement<UpdateStructureDataDetails>(OpcUaId_UpdateStructureDataDetails_Encoding_DefaultBinary);
 		ep.registerFactoryElement<HistoryData>(OpcUaId_HistoryData_Encoding_DefaultBinary);
 	}
 
@@ -117,6 +120,8 @@ namespace OpcUaStackCore
 	Core::initExtensionObject(void)
 	{
 		OpcUaExtensionObject eo;
+
+		// binary
 		eo.registerFactoryElement<BuildInfo>(OpcUaId_BuildInfo_Encoding_DefaultBinary);
 		eo.registerFactoryElement<ServerStatusDataType>(OpcUaId_ServerStatusDataType_Encoding_DefaultBinary);
 		eo.registerFactoryElement<ModelChangeStructureDataType>(OpcUaId_ModelChangeStructureDataType_Encoding_DefaultBinary);
@@ -129,6 +134,10 @@ namespace OpcUaStackCore
 		eo.registerFactoryElement<StatusResult>(OpcUaId_StatusResult_Encoding_DefaultBinary);
 		eo.registerFactoryElement<SubscriptionDiagnosticsDataType>(OpcUaId_SubscriptionDiagnosticsDataType_Encoding_DefaultBinary);
 		eo.registerFactoryElement<ServerDiagnosticsSummaryDataType>(OpcUaId_ServerDiagnosticsSummaryDataType_Encoding_DefaultBinary);
+		eo.registerFactoryElement<Argument>(OpcUaId_Argument_Encoding_DefaultBinary);
+
+		// xml
+		eo.registerFactoryElement<Argument>(OpcUaId_Argument_Encoding_DefaultXml);
 	}
 
 	void
@@ -150,6 +159,7 @@ namespace OpcUaStackCore
 		ep.deregisterFactoryElement(OpcUaId_ViewAttributes);
 
 		ep.deregisterFactoryElement(OpcUaId_ReadRawModifiedDetails_Encoding_DefaultBinary);
+		ep.deregisterFactoryElement(OpcUaId_UpdateStructureDataDetails_Encoding_DefaultBinary);
 		ep.deregisterFactoryElement(OpcUaId_HistoryData_Encoding_DefaultBinary);
 	}
 
@@ -157,6 +167,8 @@ namespace OpcUaStackCore
 	Core::cleanupExtensionObject(void)
 	{
 		OpcUaExtensionObject eo;
+
+		// binary
 		eo.deregisterFactoryElement(OpcUaId_BuildInfo_Encoding_DefaultBinary);
 		eo.deregisterFactoryElement(OpcUaId_ServerStatusDataType_Encoding_DefaultBinary);
 		eo.deregisterFactoryElement(OpcUaId_ModelChangeStructureDataType_Encoding_DefaultBinary);
@@ -169,6 +181,10 @@ namespace OpcUaStackCore
 		eo.deregisterFactoryElement(OpcUaId_StatusResult_Encoding_DefaultBinary);
 		eo.deregisterFactoryElement(OpcUaId_SubscriptionDiagnosticsDataType_Encoding_DefaultBinary);
 		eo.deregisterFactoryElement(OpcUaId_ServerDiagnosticsSummaryDataType_Encoding_DefaultBinary);
+		eo.deregisterFactoryElement(OpcUaId_Argument_Encoding_DefaultBinary);
+
+		// xml
+		eo.deregisterFactoryElement(OpcUaId_Argument_Encoding_DefaultXml);
 	}
 
 }

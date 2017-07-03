@@ -1,5 +1,5 @@
 /*
-   Copyright 2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2017 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -46,6 +46,12 @@ namespace OpcUaStackServer
 		void informationModel(InformationModel::SPtr informationModel);
 
 		// --------------------------------------------------------------------
+		// helper function
+		// --------------------------------------------------------------------
+		OpcUaNodeId createUniqueNodeId(uint16_t namespaceIndex);
+		OpcUaNodeId createUniqueNodeId(const std::string& namespaceName, uint16_t namespaceIndex);
+
+		// --------------------------------------------------------------------
 		// node functions
 		// --------------------------------------------------------------------
 		bool rootNode(BaseNodeClass::SPtr& baseNodeClass, bool logOnError = true);
@@ -54,9 +60,33 @@ namespace OpcUaStackServer
 		// --------------------------------------------------------------------
 		// child functions
 		// --------------------------------------------------------------------
-		bool getChild(BaseNodeClass::SPtr baseNodeClass, BaseNodeClass::Vec& childBaseNodeClassVec);
-		bool getChildHierarchically(BaseNodeClass::SPtr baseNodeClass, BaseNodeClass::Vec& childBaseNodeClassVec);
-		bool getChildNonHierarchically(BaseNodeClass::SPtr baseNodeClass, BaseNodeClass::Vec& childBaseNodeClassVec);
+		bool getChild(
+			BaseNodeClass::SPtr baseNodeClass,
+			BaseNodeClass::Vec& childBaseNodeClassVec
+		);
+		bool getChildHierarchically(
+			BaseNodeClass::SPtr baseNodeClass,
+			BaseNodeClass::Vec& childBaseNodeClassVec
+		);
+		bool getChildHierarchically(
+			BaseNodeClass::SPtr baseNodeClass,
+			BaseNodeClass::Vec& childBaseNodeClassVec,
+			ReferenceItem::Vec& referenceItemVec
+		);
+		bool getChildHierarchically(
+			BaseNodeClass::SPtr baseNodeClass,
+			BaseNodeClass::Vec& childBaseNodeClassVec,
+			std::vector<OpcUaNodeId>& referenceTypeNodeIdVec
+		);
+		bool getChildNonHierarchically(
+			BaseNodeClass::SPtr baseNodeClass,
+			BaseNodeClass::Vec& childBaseNodeClassVec
+		);
+		bool getChildHierarchically(
+			BaseNodeClass::SPtr baseNodeClass,
+			OpcUaNodeId& referenceTypeNodeId,
+			std::vector<OpcUaNodeId>& childNodeIdVec
+		);
 
 		// --------------------------------------------------------------------
 		// parent functions
@@ -89,6 +119,30 @@ namespace OpcUaStackServer
 		bool getSubType(BaseNodeClass::SPtr baseNodeClass, OpcUaNodeId& subTypeNodeId);
 
 		// --------------------------------------------------------------------
+		// data type functions
+		// --------------------------------------------------------------------
+		bool isDataType(BaseNodeClass::SPtr baseNodeClass);
+		bool isDataType(OpcUaNodeId& nodeId);
+		bool isDataTypeStructure(BaseNodeClass::SPtr baseNodeClass);
+		bool isDataTypeStructure(OpcUaNodeId& nodeId);
+		bool isDataTypeEnum(BaseNodeClass::SPtr baseNodeClass);
+		bool isDataTypeEnum(OpcUaNodeId& nodeId);
+		bool isObjectType(BaseNodeClass::SPtr baseNodeClass);
+		bool isObjectType(OpcUaNodeId& nodeId);
+		bool isVariableType(BaseNodeClass::SPtr baseNodeClass);
+		bool isVariableType(OpcUaNodeId& nodeId);
+		bool isReferences(BaseNodeClass::SPtr baseNodeClass);
+		bool isReferences(OpcUaNodeId& nodeId);
+		bool isBaseEventType(BaseNodeClass::SPtr baseNodeClass);
+		bool isBaseEventType(OpcUaNodeId& nodeId);
+
+		// --------------------------------------------------------------------
+		// event function
+		// --------------------------------------------------------------------
+		bool isEventProperty(BaseNodeClass::SPtr baseNodeClass);
+		bool isEventProperty(OpcUaNodeId& nodeId);
+
+		// --------------------------------------------------------------------
 		// merge function
 		// --------------------------------------------------------------------
 		bool add(InformationModel::SPtr informationModel, uint16_t namespaceIndex, MergeIf* mergeIf = NULL, uint32_t step = 10);
@@ -97,6 +151,7 @@ namespace OpcUaStackServer
 		bool containsNodeIds(InformationModel::SPtr informationModel, uint16_t namespaceIndex);
 
 	  private:
+		static uint32_t counter_;
 		InformationModel::SPtr informationModel_;
 	};
 

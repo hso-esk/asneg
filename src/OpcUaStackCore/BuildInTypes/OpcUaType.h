@@ -54,12 +54,21 @@ namespace OpcUaStackCore
 		OpcUaBuildInType_OpcUaDiagnosticInfo = 25
 	} OpcUaBuildInType;
 
+	class OpcUaBuildInTypeClass
+	{
+	  public:
+		static bool isBoolean(OpcUaBuildInType buildInType);
+		static bool isByte(OpcUaBuildInType buildInType);
+	    static bool isNumber(OpcUaBuildInType buildInType);
+	    static bool isObject(OpcUaBuildInType buildInType);
+	};
 
 	class DLLEXPORT OpcUaBuildInTypeMap
 	{
 	  public:
 		static std::string buildInType2String(OpcUaBuildInType buildInType);
 		static OpcUaBuildInType string2BuildInType(const std::string& type);
+		static std::string buildInType2CPPType(OpcUaBuildInType buildInType);
 	};
 
 };

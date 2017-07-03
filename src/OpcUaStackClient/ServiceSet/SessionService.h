@@ -87,7 +87,7 @@ namespace OpcUaStackClient
 			SecureChannelClientConfig::SPtr& secureChannelClientConfig,
 			SessionConfig::SPtr& sessionConfig
 		);
-
+		void updateEndpointUrl(const std::string& endpointUrl);
 
 		void sessionServiceIf(SessionServiceIf* sessionServiceIf);
 		void asyncConnect(void);
@@ -95,6 +95,7 @@ namespace OpcUaStackClient
 		void asyncDisconnect(bool deleteSubscriptions = true);
 		OpcUaStatusCode syncDisconnect(bool deleteSubscriptions = true);
 		void asyncCancel(uint32_t requestHandle);
+		SecureChannelState secureChannelState(void);
 
 		//- SecureChannelClientIf ---------------------------------------------
 		virtual void handleConnect(SecureChannel* secureChannel);

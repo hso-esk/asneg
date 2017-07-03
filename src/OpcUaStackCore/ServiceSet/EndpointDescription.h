@@ -36,7 +36,8 @@ namespace OpcUaStackCore
 		MessageSecurityMode_SignAndEncrypt = 3,
 	} MessageSecurityMode;
 
-	class DLLEXPORT EndpointDescription : public  ObjectPool<EndpointDescription>
+	class DLLEXPORT EndpointDescription
+	: public  Object
 	{
 	  public:
 		typedef boost::shared_ptr<EndpointDescription> SPtr;
@@ -63,6 +64,7 @@ namespace OpcUaStackCore
 
 		void opcUaBinaryEncode(std::ostream& os) const;
 		void opcUaBinaryDecode(std::istream& is);
+		void out(std::ostream& os);
 
 	  private:
 		OpcUaString endpointUrl_;
@@ -75,7 +77,9 @@ namespace OpcUaStackCore
 		OpcUaByte securityLevel_;
 	};
 
-	class EndpointDescriptionArray : public OpcUaArray<EndpointDescription::SPtr, SPtrTypeCoder<EndpointDescription> >, public ObjectPool<EndpointDescriptionArray> 
+	class EndpointDescriptionArray
+	: public OpcUaArray<EndpointDescription::SPtr, SPtrTypeCoder<EndpointDescription> >
+	, public Object
 	{
 	  public:
 		typedef boost::shared_ptr<EndpointDescriptionArray> SPtr;

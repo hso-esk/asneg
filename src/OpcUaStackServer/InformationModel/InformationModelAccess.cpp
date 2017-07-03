@@ -1,5 +1,5 @@
 /*
-   Copyright 2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2017 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -15,6 +15,7 @@
    Autor: Kai Huebl (kai@huebl-sgh.de)
  */
 
+#include <sstream>
 #include "OpcUaStackCore/BuildInTypes/OpcUaIdentifier.h"
 #include "OpcUaStackCore/Base/Log.h"
 #include "OpcUaStackServer/InformationModel/InformationModelAccess.h"
@@ -24,6 +25,8 @@ using namespace OpcUaStackCore;
 
 namespace OpcUaStackServer
 {
+
+	uint32_t InformationModelAccess::counter_ = 1;
 
 	InformationModelAccess::InformationModelAccess(void)
 	: informationModel_()
@@ -43,6 +46,54 @@ namespace OpcUaStackServer
 	InformationModelAccess::informationModel(InformationModel::SPtr informationModel)
 	{
 		informationModel_ = informationModel;
+	}
+
+	// ------------------------------------------------------------------------
+	// ------------------------------------------------------------------------
+	//
+	// helper function
+	//
+	// ------------------------------------------------------------------------
+	// ------------------------------------------------------------------------
+	OpcUaNodeId
+	InformationModelAccess::createUniqueNodeId(uint16_t namespaceIndex)
+	{
+		OpcUaNodeId nodeId;
+		BaseNodeClass::SPtr baseNode;
+
+		do {
+			nodeId.set(counter_++, namespaceIndex);
+
+			baseNode = informationModel_->find(nodeId);
+		} while (baseNode.get() != nullptr);
+
+		return nodeId;
+	}
+
+	OpcUaNodeId
+	InformationModelAccess::createUniqueNodeId(const std::string& namespaceName, uint16_t namespaceIndex)
+	{
+		uint32_t idx = 0;
+		OpcUaNodeId nodeId;
+		BaseNodeClass::SPtr baseNode;
+
+		do {
+			std::stringstream ss;
+
+			if (idx == 0) {
+				ss << namespaceName;
+			}
+			else {
+				ss << namespaceName << "_" << idx;
+			}
+
+			nodeId.set(ss.str(), namespaceIndex);
+			baseNode = informationModel_->find(nodeId);
+
+			idx++;
+		} while (baseNode.get() != nullptr);
+
+		return nodeId;
 	}
 
 	// ------------------------------------------------------------------------
@@ -97,9 +148,15 @@ namespace OpcUaStackServer
 			if (!referenceItem->isForward_) continue;
 			BaseNodeClass::SPtr childBaseNodeClass = informationModel_->find(referenceItem->nodeId_);
 			if (childBaseNodeClass.get() == nullptr) {
+				OpcUaNodeId parentNodeId;
+				OpcUaNodeId childNodeId;
+
+				baseNodeClass->getNodeId(parentNodeId);
+				childNodeId = referenceItem->nodeId_;
+
 				Log(Warning, "child node not found in information model")
-					.parameter("ParentNodeId", baseNodeClass->getNodeId())
-					.parameter("ChildNodeId", referenceItem->nodeId_);
+					.parameter("ParentNodeId", parentNodeId)
+					.parameter("ChildNodeId", childNodeId);
 				return false;
 			}
 			childBaseNodeClassVec.push_back(childBaseNodeClass);
@@ -108,9 +165,28 @@ namespace OpcUaStackServer
 	}
 
 	bool
-	InformationModelAccess::getChildHierarchically(BaseNodeClass::SPtr baseNodeClass, BaseNodeClass::Vec& childBaseNodeClassVec)
+	InformationModelAccess::getChildHierarchically(
+		BaseNodeClass::SPtr baseNodeClass,
+		BaseNodeClass::Vec& childBaseNodeClassVec
+	)
+	{
+		ReferenceItem::Vec referenceItemVec;
+		return getChildHierarchically(
+			baseNodeClass,
+			childBaseNodeClassVec,
+			referenceItemVec
+		);
+	}
+
+	bool
+	InformationModelAccess::getChildHierarchically(
+		BaseNodeClass::SPtr baseNodeClass,
+		BaseNodeClass::Vec& childBaseNodeClassVec,
+		ReferenceItem::Vec& referenceItemVec
+	)
 	{
 		childBaseNodeClassVec.clear();
+		referenceItemVec.clear();
 
 		ReferenceItemMultiMap::iterator it;
 		for (
@@ -124,6 +200,7 @@ namespace OpcUaStackServer
 
 			if (!isReferenceHierarchically(it->first)) continue;
 
+			if (informationModel_.get() == nullptr) return false;
 			BaseNodeClass::SPtr childBaseNodeClass = informationModel_->find(referenceItem->nodeId_);
 			if (childBaseNodeClass.get() == nullptr) {
 				Log(Warning, "child node not found in information model")
@@ -131,7 +208,47 @@ namespace OpcUaStackServer
 					.parameter("ChildNodeId", referenceItem->nodeId_);
 				return false;
 			}
+
 			childBaseNodeClassVec.push_back(childBaseNodeClass);
+			referenceItemVec.push_back(referenceItem);
+		}
+		return true;
+	}
+
+	bool
+	InformationModelAccess::getChildHierarchically(
+		BaseNodeClass::SPtr baseNodeClass,
+		BaseNodeClass::Vec& childBaseNodeClassVec,
+		std::vector<OpcUaNodeId>& referenceTypeNodeIdVec
+	)
+	{
+		childBaseNodeClassVec.clear();
+		referenceTypeNodeIdVec.clear();
+
+		ReferenceItemMultiMap::iterator it;
+		for (
+			it = baseNodeClass->referenceItemMap().referenceItemMultiMap().begin();
+			it != baseNodeClass->referenceItemMap().referenceItemMultiMap().end();
+			it++
+		)
+		{
+			OpcUaNodeId referenceTypeNodeId = it->first;
+			ReferenceItem::SPtr referenceItem = it->second;
+			if (!referenceItem->isForward_) continue;
+
+			if (!isReferenceHierarchically(it->first)) continue;
+
+			if (informationModel_.get() == nullptr) return false;
+			BaseNodeClass::SPtr childBaseNodeClass = informationModel_->find(referenceItem->nodeId_);
+			if (childBaseNodeClass.get() == nullptr) {
+				Log(Warning, "child node not found in information model")
+					.parameter("ParentNodeId", baseNodeClass->getNodeId())
+					.parameter("ChildNodeId", referenceItem->nodeId_);
+				return false;
+			}
+
+			childBaseNodeClassVec.push_back(childBaseNodeClass);
+			referenceTypeNodeIdVec.push_back(referenceTypeNodeId);
 		}
 		return true;
 	}
@@ -162,6 +279,34 @@ namespace OpcUaStackServer
 			}
 			childBaseNodeClassVec.push_back(childBaseNodeClass);
 		}
+		return true;
+	}
+
+	bool
+	InformationModelAccess::getChildHierarchically(
+		BaseNodeClass::SPtr baseNodeClass,
+		OpcUaNodeId& referenceTypeNodeId,
+		std::vector<OpcUaNodeId>& childNodeIdVec
+	)
+	{
+		childNodeIdVec.clear();
+
+		ReferenceItemMultiMap::iterator it;
+		for (
+			it = baseNodeClass->referenceItemMap().referenceItemMultiMap().begin();
+			it != baseNodeClass->referenceItemMap().referenceItemMultiMap().end();
+			it++
+		)
+		{
+			if (it->first != referenceTypeNodeId) continue;
+
+			ReferenceItem::SPtr referenceItem = it->second;
+			if (!referenceItem->isForward_) continue;
+
+			childNodeIdVec.push_back(referenceItem->nodeId_);
+		}
+
+
 		return true;
 	}
 
@@ -388,7 +533,7 @@ namespace OpcUaStackServer
 		}
 
 		// surrogate parent does not exist. Create a surrogate parent
-		baseNodeClass = ObjectNodeClass::construct();
+		baseNodeClass = constructSPtr<ObjectNodeClass>();
 		baseNodeClass->setNodeId(nodeId);
 		OpcUaQualifiedName browseName("SurrogateParent");
 		baseNodeClass->setBrowseName(browseName);
@@ -619,6 +764,16 @@ namespace OpcUaStackServer
 	bool
 	InformationModelAccess::getSubType(BaseNodeClass::SPtr baseNodeClass, BaseNodeClass::SPtr& subTypeBaseNodeClass)
 	{
+		OpcUaNodeId nodeId;
+		baseNodeClass->getNodeId(nodeId);
+
+		// base type nodes do not have a sub type
+		if (nodeId == OpcUaNodeId(58)) return false;
+		if (nodeId == OpcUaNodeId(24)) return false;
+		if (nodeId == OpcUaNodeId(2041)) return false;
+		if (nodeId == OpcUaNodeId(31)) return false;
+		if (nodeId == OpcUaNodeId(62)) return false;
+
 		std::pair<ReferenceItemMultiMap::iterator,ReferenceItemMultiMap::iterator> it;
 		it = baseNodeClass->referenceItemMap().referenceItemMultiMap().equal_range(*ReferenceTypeMap::hasSubtypeTypeNodeId());
 		if (it.first == it.second) {
@@ -640,12 +795,13 @@ namespace OpcUaStackServer
 					.parameter("SubTypeNode", "");
 				return false;
 			}
+			return true;
 		}
 
 		Log(Warning, "HasSubTypeDefinition backward reference not exist in node")
 			.parameter("NodeId", baseNodeClass->nodeId());
 
-		return true;
+		return false;
 	}
 
 	bool
@@ -673,7 +829,255 @@ namespace OpcUaStackServer
 		return true;
 	}
 
+	bool
+	InformationModelAccess::isDataType(BaseNodeClass::SPtr baseNodeClass)
+	{
+		// check node id
+		boost::optional<OpcUaNodeId&> nodeId = baseNodeClass->getNodeId();
+		if (*nodeId == OpcUaNodeId(OpcUaId_BaseDataType)) return true;
 
+		// get subtype
+		OpcUaNodeId subTypeNodeId;
+		if (!getSubType(baseNodeClass, subTypeNodeId)) {
+			return false;
+		}
+
+		// get subtype base class
+		baseNodeClass = informationModel_->find(subTypeNodeId);
+		if (baseNodeClass.get() == nullptr) {
+			return false;
+		}
+
+		return isDataType(baseNodeClass);
+	}
+
+	bool
+	InformationModelAccess::isDataType(OpcUaNodeId& nodeId)
+	{
+		BaseNodeClass::SPtr baseNodeClass = informationModel_->find(nodeId);
+		if (baseNodeClass.get() == nullptr) return false;
+		return isDataType(baseNodeClass);
+	}
+
+	bool
+	InformationModelAccess::isDataTypeStructure(BaseNodeClass::SPtr baseNodeClass)
+	{
+		// check node id
+		boost::optional<OpcUaNodeId&> nodeId = baseNodeClass->getNodeId();
+		if (*nodeId == OpcUaNodeId(OpcUaId_Structure)) return true;
+
+		// get subtype
+		OpcUaNodeId subTypeNodeId;
+		if (!getSubType(baseNodeClass, subTypeNodeId)) {
+			return false;
+		}
+
+		// get subtype base class
+		baseNodeClass = informationModel_->find(subTypeNodeId);
+		if (baseNodeClass.get() == nullptr) {
+			return false;
+		}
+
+		return isDataTypeStructure(baseNodeClass);
+	}
+
+	bool
+	InformationModelAccess::isDataTypeStructure(OpcUaNodeId& nodeId)
+	{
+		BaseNodeClass::SPtr baseNodeClass = informationModel_->find(nodeId);
+		if (baseNodeClass.get() == nullptr) return false;
+		return isDataTypeStructure(baseNodeClass);
+	}
+
+	bool
+	InformationModelAccess::isDataTypeEnum(BaseNodeClass::SPtr baseNodeClass)
+	{
+		// check node id
+		boost::optional<OpcUaNodeId&> nodeId = baseNodeClass->getNodeId();
+		if (*nodeId == OpcUaNodeId(OpcUaId_Enumeration)) return true;
+
+		// get subtype
+		OpcUaNodeId subTypeNodeId;
+		if (!getSubType(baseNodeClass, subTypeNodeId)) {
+			return false;
+		}
+
+		// get subtype base class
+		baseNodeClass = informationModel_->find(subTypeNodeId);
+		if (baseNodeClass.get() == nullptr) {
+			return false;
+		}
+
+		return isDataTypeEnum(baseNodeClass);
+	}
+
+	bool
+	InformationModelAccess::isDataTypeEnum(OpcUaNodeId& nodeId)
+	{
+		BaseNodeClass::SPtr baseNodeClass = informationModel_->find(nodeId);
+		if (baseNodeClass.get() == nullptr) return false;
+		return isDataTypeEnum(baseNodeClass);
+	}
+
+	bool
+	InformationModelAccess::isObjectType(BaseNodeClass::SPtr baseNodeClass)
+	{
+		// check node id
+		boost::optional<OpcUaNodeId&> nodeId = baseNodeClass->getNodeId();
+		if (*nodeId == OpcUaNodeId(OpcUaId_BaseObjectType)) return true;
+
+		// get subtype
+		OpcUaNodeId subTypeNodeId;
+		if (!getSubType(baseNodeClass, subTypeNodeId)) {
+			return false;
+		}
+
+		// get subtype base class
+		baseNodeClass = informationModel_->find(subTypeNodeId);
+		if (baseNodeClass.get() == nullptr) {
+			return false;
+		}
+
+		return isObjectType(baseNodeClass);
+	}
+
+	bool
+	InformationModelAccess::isObjectType(OpcUaNodeId& nodeId)
+	{
+		BaseNodeClass::SPtr baseNodeClass = informationModel_->find(nodeId);
+		if (baseNodeClass.get() == nullptr) return false;
+		return isObjectType(baseNodeClass);
+	}
+
+	bool
+	InformationModelAccess::isVariableType(BaseNodeClass::SPtr baseNodeClass)
+	{
+		// check node id
+		boost::optional<OpcUaNodeId&> nodeId = baseNodeClass->getNodeId();
+		if (*nodeId == OpcUaNodeId(OpcUaId_BaseVariableType)) return true;
+
+		// get subtype
+		OpcUaNodeId subTypeNodeId;
+		if (!getSubType(baseNodeClass, subTypeNodeId)) {
+			return false;
+		}
+
+		// get subtype base class
+		baseNodeClass = informationModel_->find(subTypeNodeId);
+		if (baseNodeClass.get() == nullptr) {
+			return false;
+		}
+
+		return isVariableType(baseNodeClass);
+	}
+
+	bool
+	InformationModelAccess::isVariableType(OpcUaNodeId& nodeId)
+	{
+		BaseNodeClass::SPtr baseNodeClass = informationModel_->find(nodeId);
+		if (baseNodeClass.get() == nullptr) return false;
+		return isVariableType(baseNodeClass);
+	}
+
+	bool
+	InformationModelAccess::isReferences(BaseNodeClass::SPtr baseNodeClass)
+	{
+		// check node id
+		boost::optional<OpcUaNodeId&> nodeId = baseNodeClass->getNodeId();
+		if (*nodeId == OpcUaNodeId(OpcUaId_References)) return true;
+
+		// get subtype
+		OpcUaNodeId subTypeNodeId;
+		if (!getSubType(baseNodeClass, subTypeNodeId)) {
+			return false;
+		}
+
+		// get subtype base class
+		baseNodeClass = informationModel_->find(subTypeNodeId);
+		if (baseNodeClass.get() == nullptr) {
+			return false;
+		}
+
+		return isReferences(baseNodeClass);
+	}
+
+	bool
+	InformationModelAccess::isReferences(OpcUaNodeId& nodeId)
+	{
+		BaseNodeClass::SPtr baseNodeClass = informationModel_->find(nodeId);
+		if (baseNodeClass.get() == nullptr) return false;
+		return isReferences(baseNodeClass);
+	}
+
+	bool
+	InformationModelAccess::isBaseEventType(BaseNodeClass::SPtr baseNodeClass)
+	{
+		// check node id
+		boost::optional<OpcUaNodeId&> nodeId = baseNodeClass->getNodeId();
+		if (*nodeId == OpcUaNodeId(OpcUaId_BaseEventType)) return true;
+
+		// get subtype
+		OpcUaNodeId subTypeNodeId;
+		if (!getSubType(baseNodeClass, subTypeNodeId)) {
+			return false;
+		}
+
+		// get subtype base class
+		baseNodeClass = informationModel_->find(subTypeNodeId);
+		if (baseNodeClass.get() == nullptr) {
+			return false;
+		}
+
+		return isBaseEventType(baseNodeClass);
+	}
+
+	bool
+	InformationModelAccess::isBaseEventType(OpcUaNodeId& nodeId)
+	{
+		BaseNodeClass::SPtr baseNodeClass = informationModel_->find(nodeId);
+		if (baseNodeClass.get() == nullptr) return false;
+		return isBaseEventType(baseNodeClass);
+	}
+
+
+	// ------------------------------------------------------------------------
+	// ------------------------------------------------------------------------
+	//
+	// event function
+	//
+	// ------------------------------------------------------------------------
+	// ------------------------------------------------------------------------
+	bool
+	InformationModelAccess::isEventProperty(BaseNodeClass::SPtr baseNodeClass)
+	{
+		// check type definition
+		OpcUaNodeId typeNodeId;
+		getType(baseNodeClass, typeNodeId);
+		if (typeNodeId != OpcUaNodeId(OpcUaId_PropertyType))  return false;
+
+		// get parent
+		std::vector<OpcUaNodeId> nodeIdVec;
+		getParent(baseNodeClass, nodeIdVec);
+
+		// check event type
+		std::vector<OpcUaNodeId>::iterator it;
+		for (it = nodeIdVec .begin(); it != nodeIdVec.end(); it++) {
+			OpcUaNodeId parentNodeId = *it;
+
+			if (isBaseEventType(parentNodeId)) return true;
+		}
+
+		return false;
+
+	}
+
+	bool
+	InformationModelAccess::isEventProperty(OpcUaNodeId& nodeId)
+	{
+		BaseNodeClass::SPtr baseNodeClass = informationModel_->find(nodeId);
+		if (baseNodeClass.get() == nullptr) return false;
+		return isEventProperty(baseNodeClass);
+	}
 	// ------------------------------------------------------------------------
 	// ------------------------------------------------------------------------
 	//
@@ -758,10 +1162,10 @@ namespace OpcUaStackServer
 				baseNodeClass->referenceItemMap().remove(referenceTypeNodeId, referenceItem);
 
 				// add reference between node and new parent
-				referenceItem = ReferenceItem::construct(true, *baseNodeClass->getNodeId());
+				referenceItem = constructSPtr<ReferenceItem>(true, *baseNodeClass->getNodeId());
 				surrogateParentNode->referenceItemMap().add(ReferenceType_HasComponent, referenceItem);
 
-				referenceItem = ReferenceItem::construct(false, *surrogateParentNode->getNodeId());
+				referenceItem = constructSPtr<ReferenceItem>(false, *surrogateParentNode->getNodeId());
 				baseNodeClass->referenceItemMap().add(ReferenceType_HasComponent, referenceItem);
 			}
 		}

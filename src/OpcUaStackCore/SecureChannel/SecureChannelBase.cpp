@@ -662,10 +662,10 @@ namespace OpcUaStackCore
 
 		// encode sequence number
 		secureChannel->sendSequenceNumber_++;
-		OpcUaNumber::opcUaBinaryDecode(ios1, secureChannel->recvSequenceNumber_);
+		OpcUaNumber::opcUaBinaryEncode(ios1, secureChannel->recvSequenceNumber_);
 
 		// encode request id
-		OpcUaNumber::opcUaBinaryDecode(ios1, secureChannel->recvRequestId_);
+		OpcUaNumber::opcUaBinaryEncode(ios1, secureChannel->recvRequestId_);
 
 		// encode response type id
 		OpcUaNodeId typeIdResponse;
@@ -816,6 +816,7 @@ namespace OpcUaStackCore
 	void
 	SecureChannelBase::handleWriteCloseSecureChannelRequestComplete(const boost::system::error_code& error, SecureChannel* secureChannel)
 	{
+		// interrupts reading loop -> handleDisconnect
 		secureChannel->socket().cancel();
 	}
 
@@ -833,7 +834,7 @@ namespace OpcUaStackCore
 		secureChannel->recvFirstSegment_ = false;
 		if (secureChannel->secureChannelTransaction_.get() == nullptr) {
 			secureChannel->recvFirstSegment_ = true;
-			secureChannel->secureChannelTransaction_ = SecureChannelTransaction::construct();
+			secureChannel->secureChannelTransaction_ = constructSPtr<SecureChannelTransaction>();
 		}
 
 		secureChannel->async_read_exactly(
@@ -1058,7 +1059,7 @@ namespace OpcUaStackCore
 		secureChannel->recvFirstSegment_ = false;
 		if (secureChannel->secureChannelTransaction_.get() == nullptr) {
 			secureChannel->recvFirstSegment_ = true;
-			secureChannel->secureChannelTransaction_ = SecureChannelTransaction::construct();
+			secureChannel->secureChannelTransaction_ = constructSPtr<SecureChannelTransaction>();
 		}
 
 		secureChannel->async_read_exactly(
@@ -1193,7 +1194,7 @@ namespace OpcUaStackCore
 		}
 
 		// encode MessageHeader
-		MessageHeader::SPtr messageHeaderSPtr = MessageHeader::construct();
+		MessageHeader::SPtr messageHeaderSPtr = constructSPtr<MessageHeader>();
 		messageHeaderSPtr->messageType(MessageType_Message);
 		messageHeaderSPtr->segmentFlag(segmentFlag);
 		messageHeaderSPtr->messageSize(packetSize);

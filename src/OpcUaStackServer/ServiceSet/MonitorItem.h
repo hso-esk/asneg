@@ -1,5 +1,5 @@
 /*
-   Copyright 2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2016 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -37,7 +37,8 @@ namespace OpcUaStackServer
 		NodeNoLongerExist,
 	} SampleResult;
 
-	class MonitorItem : public ObjectPool<MonitorItem>
+	class MonitorItem
+	: public Object
 	{
 	  public:
 		typedef boost::shared_ptr<MonitorItem> SPtr;
@@ -52,6 +53,7 @@ namespace OpcUaStackServer
 		uint32_t samplingInterval(void);
 		uint32_t queSize(void);
 		uint32_t size(void);
+		BaseNodeClass::SPtr baseNodeClass(void);
 
 		SlotTimerElement::SPtr slotTimerElement(void);
 		MonitoredItemCreateRequest::SPtr monitoredItemCreateRequest(void);

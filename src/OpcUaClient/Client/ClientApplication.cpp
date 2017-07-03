@@ -1,6 +1,6 @@
 
 /*
-   Copyright 2016 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2016-2017 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -26,11 +26,16 @@
 #include "OpcUaClient/ClientCommand/CommandRead.h"
 #include "OpcUaClient/ClientCommand/CommandReadH.h"
 #include "OpcUaClient/ClientCommand/CommandWrite.h"
+#include "OpcUaClient/ClientCommand/CommandWriteH.h"
 #include "OpcUaClient/ClientCommand/CommandDelay.h"
 #include "OpcUaClient/ClientCommand/CommandNodeSetServer.h"
 #include "OpcUaClient/ClientCommand/CommandNodeSetFilter.h"
 #include "OpcUaClient/ClientCommand/CommandBrowse.h"
 #include "OpcUaClient/ClientCommand/CommandFunction.h"
+#include "OpcUaClient/ClientCommand/CommandBrowsePathToNodeId.h"
+#include "OpcUaClient/ClientCommand/CommandGetEndpoint.h"
+#include "OpcUaClient/ClientCommand/CommandFindServer.h"
+#include "OpcUaClient/ClientCommand/CommandRegisterServer.h"
 
 // services
 #include "OpcUaClient/ClientService/ClientServiceConnect.h"
@@ -38,11 +43,16 @@
 #include "OpcUaClient/ClientService/ClientServiceRead.h"
 #include "OpcUaClient/ClientService/ClientServiceReadH.h"
 #include "OpcUaClient/ClientService/ClientServiceWrite.h"
+#include "OpcUaClient/ClientService/ClientServiceWriteH.h"
 #include "OpcUaClient/ClientService/ClientServiceDelay.h"
 #include "OpcUaClient/ClientService/ClientServiceNodeSetServer.h"
 #include "OpcUaClient/ClientService/ClientServiceNodeSetFilter.h"
 #include "OpcUaClient/ClientService/ClientServiceBrowse.h"
 #include "OpcUaClient/ClientService/ClientServiceFunction.h"
+#include "OpcUaClient/ClientService/ClientServiceBrowsePathToNodeId.h"
+#include "OpcUaClient/ClientService/ClientServiceGetEndpoint.h"
+#include "OpcUaClient/ClientService/ClientServiceFindServer.h"
+#include "OpcUaClient/ClientService/ClientServiceRegisterServer.h"
 
 namespace OpcUaClient
 {
@@ -67,11 +77,17 @@ namespace OpcUaClient
 		CommandParser::addCommand("READ", constructSPtr<CommandRead>());
 		CommandParser::addCommand("WRITE", constructSPtr<CommandWrite>());
 		CommandParser::addCommand("READH", constructSPtr<CommandReadH>());
+		CommandParser::addCommand("WRITEH", constructSPtr<CommandWriteH>());
 		CommandParser::addCommand("DELAY", constructSPtr<CommandDelay>());
 		CommandParser::addCommand("NODESETSERVER", constructSPtr<CommandNodeSetServer>());
 		CommandParser::addCommand("NODESETFILTER", constructSPtr<CommandNodeSetFilter>());
 		CommandParser::addCommand("BROWSE", constructSPtr<CommandBrowse>());
 		CommandParser::addCommand("FUNCTION", constructSPtr<CommandFunction>());
+		CommandParser::addCommand("BROWSEPATHTONODEID", constructSPtr<CommandBrowsePathToNodeId>());
+		CommandParser::addCommand("GETENDPOINT", constructSPtr<CommandGetEndpoint>());
+		CommandParser::addCommand("FINDSERVER", constructSPtr<CommandFindServer>());
+		CommandParser::addCommand("REGISTERSERVER", constructSPtr<CommandRegisterServer>());
+
 
 		// register service in service factory
 		ClientServiceExecute::addClientService(CommandBase::Cmd_Connect, constructSPtr<ClientServiceConnect>());
@@ -79,11 +95,16 @@ namespace OpcUaClient
 		ClientServiceExecute::addClientService(CommandBase::Cmd_Read, constructSPtr<ClientServiceRead>());
 		ClientServiceExecute::addClientService(CommandBase::Cmd_ReadH, constructSPtr<ClientServiceReadH>());
 		ClientServiceExecute::addClientService(CommandBase::Cmd_Write, constructSPtr<ClientServiceWrite>());
+		ClientServiceExecute::addClientService(CommandBase::Cmd_WriteH, constructSPtr<ClientServiceWriteH>());
 		ClientServiceExecute::addClientService(CommandBase::Cmd_Delay, constructSPtr<ClientServiceDelay>());
 		ClientServiceExecute::addClientService(CommandBase::Cmd_NodeSetServer, constructSPtr<ClientServiceNodeSetServer>());
 		ClientServiceExecute::addClientService(CommandBase::Cmd_NodeSetFilter, constructSPtr<ClientServiceNodeSetFilter>());
 		ClientServiceExecute::addClientService(CommandBase::Cmd_Browse, constructSPtr<ClientServiceBrowse>());
 		ClientServiceExecute::addClientService(CommandBase::Cmd_Function, constructSPtr<ClientServiceFunction>());
+		ClientServiceExecute::addClientService(CommandBase::Cmd_BrowsePathToNodeId, constructSPtr<ClientServiceBrowsePathToNodeId>());
+		ClientServiceExecute::addClientService(CommandBase::Cmd_GetEndpoint, constructSPtr<ClientServiceGetEndpoint>());
+		ClientServiceExecute::addClientService(CommandBase::Cmd_FindServer, constructSPtr<ClientServiceFindServer>());
+		ClientServiceExecute::addClientService(CommandBase::Cmd_RegisterServer, constructSPtr<ClientServiceRegisterServer>());
 
 		// parse command line
 		CommandParser commandParser;

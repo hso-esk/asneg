@@ -1,5 +1,5 @@
 /*
-   Copyright 2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2017 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -17,6 +17,7 @@
 
 #include "OpcUaStackServer/NodeSet/NodeSetXmlParser.h"
 #include "OpcUaStackServer/NodeSet/NodeSetValueParser.h"
+#include "OpcUaStackCore/DataType/DataTypeDefinition.h"
 #include "OpcUaStackCore/Base/Log.h"
 #include "OpcUaStackCore/BuildInTypes/OpcUaIdentifier.h"
 
@@ -26,6 +27,7 @@ namespace OpcUaStackServer
 	NodeSetXmlParser::NodeSetXmlParser(void)
 	: nodeSetAlias_()
 	, xmlnsTypes_("")
+	, enableDefinition_(true)
 	{
 	}
 
@@ -37,6 +39,24 @@ namespace OpcUaStackServer
 	NodeSetXmlParser::nodeSetNamespace(void)
 	{
 		return nodeSetNamespace_;
+	}
+
+	NodeSetAlias&
+	NodeSetXmlParser::nodeSetAlias(void)
+	{
+		return nodeSetAlias_;
+	}
+
+	void
+	NodeSetXmlParser::enableDefinition(bool enableDefinition)
+	{
+		enableDefinition_ = enableDefinition;
+	}
+
+	bool
+	NodeSetXmlParser::enableDefinition(void)
+	{
+		return enableDefinition_;
 	}
 
 	// ##########################################################
@@ -174,10 +194,9 @@ namespace OpcUaStackServer
 		objectNodeClass->browseName().exist(true);
 
 		// replace local namespace index by global namespace index
-		globalNamespaceIndex = objectNodeClass->browseName().data().namespaceIndex();
+		localNamepaceIndex = objectNodeClass->browseName().data().namespaceIndex();
 		globalNamespaceIndex = nodeSetNamespace_.mapToGlobalNamespaceIndex(localNamepaceIndex);
 		objectNodeClass->browseName().data().namespaceIndex(globalNamespaceIndex);
-
 
 		//
 		// attribute DisplayName (mandatory)
@@ -282,7 +301,7 @@ namespace OpcUaStackServer
 				return false;
 			}
 
-			ReferenceItem::SPtr referenceItem = ReferenceItem::construct();
+			ReferenceItem::SPtr referenceItem = constructSPtr<ReferenceItem>();
 			
 			//
 			// attribute reference type (mandatory)
@@ -390,7 +409,7 @@ namespace OpcUaStackServer
 	bool 
 	NodeSetXmlParser::decodeUAObject(boost::property_tree::ptree& ptree)
 	{
-		ObjectNodeClass::SPtr objectNodeClassSPtr = ObjectNodeClass::construct();
+		ObjectNodeClass::SPtr objectNodeClassSPtr = constructSPtr<ObjectNodeClass>();
 
 		//
 		// decode NodeBase 
@@ -426,7 +445,7 @@ namespace OpcUaStackServer
 	bool 
 	NodeSetXmlParser::decodeUAObjectType(boost::property_tree::ptree& ptree)
 	{
-		ObjectTypeNodeClass::SPtr objectTypeNodeClassSPtr = ObjectTypeNodeClass::construct();
+		ObjectTypeNodeClass::SPtr objectTypeNodeClassSPtr = constructSPtr<ObjectTypeNodeClass>();
 
 		//
 		// decode NodeBase 
@@ -462,7 +481,7 @@ namespace OpcUaStackServer
 	bool 
 	NodeSetXmlParser::decodeUAVariable(boost::property_tree::ptree& ptree)
 	{
-		VariableNodeClass::SPtr variableNodeClassSPtr = VariableNodeClass::construct();
+		VariableNodeClass::SPtr variableNodeClassSPtr = constructSPtr<VariableNodeClass>();
 
 		//
 		// decode NodeBase
@@ -601,7 +620,7 @@ namespace OpcUaStackServer
 	bool 
 	NodeSetXmlParser::decodeUAVariableType(boost::property_tree::ptree& ptree)
 	{
-		VariableTypeNodeClass::SPtr variableTypeNodeClassSPtr = VariableTypeNodeClass::construct();
+		VariableTypeNodeClass::SPtr variableTypeNodeClassSPtr = constructSPtr<VariableTypeNodeClass>();
 
 		//
 		// decode NodeBase
@@ -715,7 +734,7 @@ namespace OpcUaStackServer
 	bool 
 	NodeSetXmlParser::decodeUADataType(boost::property_tree::ptree& ptree)
 	{
-		DataTypeNodeClass::SPtr dataTypeNodeClassSPtr = DataTypeNodeClass::construct();
+		DataTypeNodeClass::SPtr dataTypeNodeClassSPtr = constructSPtr<DataTypeNodeClass>();
 
 		//
 		// decode NodeBase
@@ -742,6 +761,13 @@ namespace OpcUaStackServer
 		if (!decodeReferences(dataTypeNodeClassSPtr, ptree)) return false;
 
 		//
+		// decode data type definitons
+		//
+		if (enableDefinition_) {
+			if (!decodeDataTypeDefinition(dataTypeNodeClassSPtr, ptree)) return false;
+		}
+
+		//
 		// add into vector
 		//
 		dataTypeNodeClassVec().push_back(dataTypeNodeClassSPtr);
@@ -752,7 +778,7 @@ namespace OpcUaStackServer
 	bool 
 	NodeSetXmlParser::decodeUAReferenceType(boost::property_tree::ptree& ptree)
 	{
-		ReferenceTypeNodeClass::SPtr referenceTypeNodeClassSPtr = ReferenceTypeNodeClass::construct();
+		ReferenceTypeNodeClass::SPtr referenceTypeNodeClassSPtr = constructSPtr<ReferenceTypeNodeClass>();
 
 		//
 		// decode NodeBase
@@ -815,7 +841,7 @@ namespace OpcUaStackServer
 	bool 
 	NodeSetXmlParser::decodeUAMethod(boost::property_tree::ptree& ptree)
 	{
-		MethodNodeClass::SPtr methodeNodeClassSPtr = MethodNodeClass::construct();
+		MethodNodeClass::SPtr methodeNodeClassSPtr = constructSPtr<MethodNodeClass>();
 
 		//
 		// decode NodeBase (Id, BrowseName, SymbolicName, DisplayName, ...)
@@ -829,7 +855,7 @@ namespace OpcUaStackServer
 		//
 		boost::optional<std::string> methodDeclarationId = ptree.get_optional<std::string>("<xmlattr>.MethodDeclarationId");
 		if (methodDeclarationId) {
-			ReferenceItem::SPtr referenceItem = ReferenceItem::construct();
+			ReferenceItem::SPtr referenceItem = constructSPtr<ReferenceItem>();
 
 			OpcUaNodeId::SPtr referenceTypeNodeId = constructSPtr<OpcUaNodeId>();
 			referenceTypeNodeId = ReferenceTypeMap::stringToNodeId("HasTypeDefinition");
@@ -891,6 +917,39 @@ namespace OpcUaStackServer
 		return true;
 	}
 
+
+	bool
+	NodeSetXmlParser::decodeDataTypeDefinition(DataTypeNodeClass::SPtr& dataTypeNodeClass, boost::property_tree::ptree& ptree)
+	{
+		// get optional Definition element
+		boost::optional<boost::property_tree::ptree&> definitionTree = ptree.get_child_optional("Definition");
+		if (!definitionTree) {
+			return true;
+		}
+
+		// find out whether a enum or data strucure exists
+		DataTypeDefinition::SPtr definition = constructSPtr<DataTypeDefinition>();
+		boost::optional<std::string> value = ptree.get_optional<std::string>("Definition.Field.<xmlattr>.Value");
+		if (value) {
+			definition->dataSubType(Enumeration);
+		}
+		else {
+			definition->dataSubType(Structure);
+		}
+
+		// decode definition
+		if (!definition->decode(ptree)) {
+			Log(Error, "invalid definiton - ignore definiton section")
+				.parameter("NodeId", dataTypeNodeClass->nodeId().data());
+			return true;
+		}
+
+		dataTypeNodeClass->dataTypeDefinition(definition);
+
+		return true;
+	}
+
+
 	// ##########################################################
 	//
 	//  encode
@@ -900,6 +959,37 @@ namespace OpcUaStackServer
 	bool 
 	NodeSetXmlParser::encode(boost::property_tree::ptree& ptree)
 	{
+		OpcUaNodeId nodeId;
+
+		nodeId.set((uint32_t)OpcUaId_HasComponent);
+		nodeSetAlias_.insert("HasComponent", nodeId);
+		nodeId.set((uint32_t)OpcUaId_HasProperty);
+		nodeSetAlias_.insert("HasProperty", nodeId);
+		nodeId.set((uint32_t)OpcUaId_HasModellingRule);
+		nodeSetAlias_.insert("HasModellingRule", nodeId);
+		nodeId.set((uint32_t)OpcUaId_HasTypeDefinition);
+		nodeSetAlias_.insert("HasTypeDefinition", nodeId);
+		nodeId.set((uint32_t)OpcUaId_HasModelParent);
+		nodeSetAlias_.insert("HasModelParent", nodeId);
+		nodeId.set((uint32_t)OpcUaId_HasEventSource);
+		nodeSetAlias_.insert("HasEventSource", nodeId);
+		nodeId.set((uint32_t)OpcUaId_HasNotifier);
+		nodeSetAlias_.insert("HasNotifier", nodeId);
+		nodeId.set((uint32_t)OpcUaId_Organizes);
+		nodeSetAlias_.insert("Organizes", nodeId);
+		nodeId.set((uint32_t)OpcUaId_HasDescription);
+		nodeSetAlias_.insert("HasDescription", nodeId);
+		nodeId.set((uint32_t)OpcUaId_HasEncoding);
+		nodeSetAlias_.insert("HasEncoding", nodeId);
+		nodeId.set((uint32_t)OpcUaId_HasSubtype);
+		nodeSetAlias_.insert("HasSubtype", nodeId);
+		nodeId.set((uint32_t)OpcUaId_GeneratesEvent);
+		nodeSetAlias_.insert("GenerateEvents", nodeId);
+		nodeId.set((uint32_t)OpcUaId_AlwaysGeneratesEvent);
+		nodeSetAlias_.insert("AlwaysGeneratesEvent", nodeId);
+		nodeId.set((uint32_t)OpcUaId_HierarchicalReferences);
+		nodeSetAlias_.insert("HierarchicalReferences", nodeId);
+
 		boost::property_tree::ptree uaNodeSetTree;
 		boost::property_tree::ptree uaNodeSetTree1;
 
@@ -932,6 +1022,7 @@ namespace OpcUaStackServer
 		}
 
 		encodeNamespaces(uaNodeSetTree1);
+		encodeAliases(uaNodeSetTree1);
 
 		boost::property_tree::ptree nodeSet;
 		boost::property_tree::ptree::iterator it;
@@ -949,9 +1040,7 @@ namespace OpcUaStackServer
 		ptree.put("UANodeSet.<xmlattr>.Version", "1.02");
 		ptree.put("UANodeSet.<xmlattr>.LastModified", "2013-03-06T05:36:44.0862658Z");
 		ptree.put("UANodeSet.<xmlattr>.xmlns", "http://opcfoundation.org/UA/2011/03/UANodeSet.xsd");
-		ptree.put("UANodeSet.<xmlattr>.xmlns", "http://opcfoundation.org/UA/2008/02/Types.xsd");
-
-
+		//ptree.add("UANodeSet.<xmlattr>.xmlns", "http://opcfoundation.org/UA/2008/02/Types.xsd");
 
 		return true;
 	}
@@ -1051,7 +1140,7 @@ namespace OpcUaStackServer
 	bool 
 	NodeSetXmlParser::encodeAliases(boost::property_tree::ptree& ptree)
 	{
-		return true;
+		return nodeSetAlias_.encodeAliases(ptree);
 	}
 	
 	bool 
@@ -1150,7 +1239,7 @@ namespace OpcUaStackServer
 			variableNodeClassSPtr = *it;
 
 			//
-			// encode NodeBase 
+			// encode NodeBase
 			//
 			if (!encodeNodeBase(variableNodeClassSPtr, node)) return false;
 			std::string nodeId = variableNodeClassSPtr->nodeId().data().toString();
@@ -1346,6 +1435,13 @@ namespace OpcUaStackServer
 			//
 			if (!encodeReferences(dataTypeNodeClassSPtr, node)) return false;
 
+			//
+			// encode data type definitons
+			//
+			if (enableDefinition_) {
+				if (!encodeDataTypeDefinition(dataTypeNodeClassSPtr, node)) return false;
+			}
+
 			// 
 			// Standard Properties
 			//
@@ -1466,6 +1562,24 @@ namespace OpcUaStackServer
 
 		return true;
 	}
+
+	bool
+	NodeSetXmlParser::encodeDataTypeDefinition(DataTypeNodeClass::SPtr& dataTypeNodeClass, boost::property_tree::ptree& ptree)
+	{
+		Object::SPtr definitionObject = dataTypeNodeClass->dataTypeDefinition();
+		if (definitionObject.get() == nullptr) return true;
+		DataTypeDefinition::SPtr definition = boost::static_pointer_cast<DataTypeDefinition>(definitionObject);
+
+		// encode definition
+		if (!definition->encode(ptree)) {
+			Log(Error, "invalid definiton - ignore definiton section")
+				.parameter("NodeId", dataTypeNodeClass->nodeId().data());
+			return true;
+		}
+
+		return true;
+	}
+
 
 	// ##########################################################
 	//

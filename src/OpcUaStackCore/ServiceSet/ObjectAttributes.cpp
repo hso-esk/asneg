@@ -1,5 +1,5 @@
 /*
-   Copyright 2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2017 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -60,8 +60,8 @@ namespace OpcUaStackCore
 		displayName_ = displayNameSPtr;		
 	}
 
-    OpcUaLocalizedText::SPtr
-	ObjectAttributes::displayName(void) const
+    OpcUaLocalizedText::SPtr&
+	ObjectAttributes::displayName(void)
 	{
 		return displayName_;
 	}
@@ -73,8 +73,8 @@ namespace OpcUaStackCore
 		description_ = descriptionSPtr;
 	}
 
-    OpcUaLocalizedText::SPtr
-	ObjectAttributes::description(void) const
+    OpcUaLocalizedText::SPtr&
+	ObjectAttributes::description(void)
 	{
 		return description_;
 	}
@@ -86,7 +86,7 @@ namespace OpcUaStackCore
 	}
 
     OpcUaByte
-	ObjectAttributes::eventNotifier(void) const
+	ObjectAttributes::eventNotifier(void)
 	{
 		return eventNotifier_;
 	}
@@ -98,7 +98,7 @@ namespace OpcUaStackCore
 	}
 
     OpcUaUInt32
-	ObjectAttributes::writeMask(void) const
+	ObjectAttributes::writeMask(void)
 	{
 		return writeMask_;
 	}
@@ -111,7 +111,7 @@ namespace OpcUaStackCore
 	}
 
     OpcUaUInt32
-	ObjectAttributes::userWriteMask(void) const
+	ObjectAttributes::userWriteMask(void)
 	{
 		return userWriteMask_;
 	}

@@ -1,5 +1,5 @@
 /*
-   Copyright 2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2017 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -18,6 +18,7 @@
 
 #include "OpcUaStackCore/Base/Log.h"
 #include "OpcUaStackCore/BuildInTypes/OpcUaIdentifier.h"
+#include "OpcUaStackCore/Base/Url.h"
 #include "OpcUaStackCore/ServiceSet/CreateSessionRequest.h"
 #include "OpcUaStackCore/ServiceSet/CreateSessionResponse.h"
 #include "OpcUaStackCore/ServiceSet/ActivateSessionRequest.h"
@@ -93,6 +94,10 @@ namespace OpcUaStackClient
 
 	SessionService::~SessionService(void)
 	{
+		if (slotTimerElement_.get() != nullptr) {
+			ioThread_->slotTimer()->stop(slotTimerElement_);
+			slotTimerElement_.reset();
+		}
 	}
 
 	void
@@ -106,7 +111,15 @@ namespace OpcUaStackClient
 		mode_ = mode;
 		sessionServiceIf_ = sessionServiceIf;
 		secureChannelClientConfig_ = secureChannelClientConfig;
-		sessionConfig_ = sessionConfig;
+		if (mode_ != M_SecureChannel) {
+			sessionConfig_ = sessionConfig;
+		}
+	}
+
+	void
+	SessionService::updateEndpointUrl(const std::string& endpointUrl)
+	{
+		secureChannelClientConfig_->endpointUrl(endpointUrl);
 	}
 
 	// ------------------------------------------------------------------------
@@ -140,10 +153,16 @@ namespace OpcUaStackClient
 	void
 	SessionService::asyncConnectInternal(SessionTransaction::SPtr& sessionTransaction)
 	{
+		// stop reconnect timer if necessary
+		if (secureChannelState_ == SCS_DisconnectedWait) {
+			ioThread_->slotTimer()->stop(slotTimerElement_);
+			secureChannelState_ = SCS_Disconnected;
+		}
+
 		// check secure channel state
 		if (secureChannelState_ != SCS_Disconnected) {
 			Log(Error, "connect operation in invalid state")
-			    .parameter("SessionName", sessionConfig_->sessionName_)
+			    .parameter("SessionName", mode_ != M_SecureChannel ? sessionConfig_->sessionName_ : "None")
 				.parameter("SecureChannelState", secureChannelState_);
 
 			if (sessionTransaction.get() != nullptr) {
@@ -153,24 +172,49 @@ namespace OpcUaStackClient
 			return;
 		}
 
-		// set session transaction
-		sessionTransaction_ = sessionTransaction;
-
+		// check configuration parameter
 		assert(sessionServiceIf_ != nullptr);
 		assert(secureChannelClientConfig_.get() != nullptr);
-
-		if (mode_ == M_SecureChannel) {
-			sessionConfig_.reset();
-			assert(sessionConfig_.get() == nullptr);
-		}
-		else {
+		if (mode_ != M_SecureChannel) {
 			assert(sessionConfig_.get() != nullptr);
-		}
-
-		if (sessionConfig_.get() != nullptr) {
 			requestTimeout_ = sessionConfig_->requestTimeout_;
 		}
 
+		// check server uri. In case of an error inform the application
+		Url endpointUrl(secureChannelClientConfig_->endpointUrl());
+		if (!endpointUrl.good()) {
+			Log(Debug, "connect operation error - invalid endpoint url")
+			    .parameter("SessionName", mode_ != M_SecureChannel ? sessionConfig_->sessionName_ : "None")
+				.parameter("EndpointUrl", secureChannelClientConfig_->endpointUrl());
+
+			secureChannelState_ = SCS_Disconnected;
+			if (sessionServiceIf_) sessionServiceIf_->sessionStateUpdate(*this, SS_ServerUriError);
+
+			if (mode_ != M_SecureChannel) {
+				if (sessionConfig_->reconnectTimeout() != 0) {
+
+					// start reconnect timer
+					slotTimerElement_->expireFromNow(sessionConfig_->reconnectTimeout());
+					slotTimerElement_->callback().reset(
+						boost::bind(&SessionService::reconnectTimeout, this)
+					);
+					ioThread_->slotTimer()->start(slotTimerElement_);
+					secureChannelState_ = SCS_DisconnectedWait;
+				}
+			}
+
+			if (sessionTransaction.get() != nullptr) {
+				sessionTransaction->statusCode_ = BadInvalidArgument;
+				sessionTransaction->condition_.conditionValueDec();
+			}
+
+			return;
+		}
+
+		// set session transaction
+		sessionTransaction_ = sessionTransaction;
+
+		// open secure channel
 		secureChannelState_ = SCS_Connecting;
 		secureChannelClient_.secureChannelClientIf(this);
 		secureChannel_ = secureChannelClient_.connect(secureChannelClientConfig_);
@@ -200,7 +244,7 @@ namespace OpcUaStackClient
 		// check secure channel state
 		if (secureChannelState_ == SCS_Disconnecting || secureChannelState_ == SCS_Disconnected) {
 			Log(Error, "disconnect operation in invalid state")
-			    .parameter("SessionName", sessionConfig_->sessionName_)
+			    .parameter("SessionName", mode_ != M_SecureChannel ? sessionConfig_->sessionName_ : "None")
 				.parameter("SecureChannelState", secureChannelState_);
 
 			if (sessionTransaction.get() != nullptr) {
@@ -233,7 +277,7 @@ namespace OpcUaStackClient
 		// set session transaction
 		sessionTransaction_ = sessionTransaction;
 
-		// FIXME: onl if session is acvitated...
+		// FIXME: only if session is activated...
 		if (secureChannelState_ == SCS_Connected && sessionConfig_.get() != nullptr) {
 			sendCloseSessionRequest(deleteSubscriptions);
 		}
@@ -245,6 +289,11 @@ namespace OpcUaStackClient
 	OpcUaStatusCode
 	SessionService::syncDisconnect(bool deleteSubscriptions)
 	{
+		//
+		// Only a separate shutdown thread can be used. Do not use
+		// the thread from io service
+		//
+
 		SessionTransaction::SPtr sessionTransaction = constructSPtr<SessionTransaction>();
 		sessionTransaction->operation_ = SessionTransaction::OP_Disconnect;
 		sessionTransaction->condition_.condition(1,0);
@@ -257,6 +306,12 @@ namespace OpcUaStackClient
 	SessionService::asyncCancel(uint32_t requestHandle)
 	{
 		ioThread_->run(boost::bind(&SessionService::asyncCancelInternal, this, requestHandle));
+	}
+
+	SessionService::SecureChannelState
+	SessionService::secureChannelState(void)
+	{
+		return secureChannelState_;
 	}
 
 	void
@@ -416,7 +471,7 @@ namespace OpcUaStackClient
 	SessionService::handleConnect(SecureChannel* secureChannel)
 	{
 		secureChannelState_ = SCS_Connected;
-		if (sessionConfig_.get() == nullptr) {
+		if (mode_ == M_SecureChannel) {
 
 			if (sessionServiceIf_) sessionServiceIf_->sessionStateUpdate(*this, SS_Connect);
 
@@ -438,7 +493,7 @@ namespace OpcUaStackClient
 	SessionService::handleDisconnect(SecureChannel* secureChannel)
 	{
 		secureChannelState_ = SCS_Disconnected;
-		if (sessionConfig_.get() != nullptr) {
+		if (mode_ != M_SecureChannel) {
 			if (sessionConfig_->reconnectTimeout() != 0) {
 
 				// start reconnect timer
@@ -505,13 +560,14 @@ namespace OpcUaStackClient
 		uint32_t requestId = ++requestId_;
 		Log(Debug, "session send request")
 		    .parameter("RequestId", requestId)
-		    .parameter("SessionName", sessionConfig_.get() != nullptr ? sessionConfig_->sessionName_ : "NoSession")
+		    .parameter("SessionName", mode_ != M_SecureChannel ? sessionConfig_->sessionName_ : "NoSession")
 		    .parameter("AuthenticationToken", authenticationToken_)
 		    .parameter("RequestType", OpcUaIdMap::longString(requestType));
 
 		if (!sessionConnect_ &&
 			requestType != OpcUaId_GetEndpointsRequest_Encoding_DefaultBinary &&
-			requestType != OpcUaId_FindServersRequest_Encoding_DefaultBinary
+			requestType != OpcUaId_FindServersRequest_Encoding_DefaultBinary &&
+			requestType != OpcUaId_RegisterServerRequest_Encoding_DefaultBinary
 		) {
 			serviceTransaction->statusCode(BadSessionClosed);
 			Component* componentService = serviceTransaction->componentService();
@@ -526,7 +582,7 @@ namespace OpcUaStackClient
 			return;
 		}
 
-		SecureChannelTransaction::SPtr secureChannelTransaction = SecureChannelTransaction::construct();
+		SecureChannelTransaction::SPtr secureChannelTransaction = constructSPtr<SecureChannelTransaction>();
 		secureChannelTransaction->requestTypeNodeId_ = serviceTransaction->nodeTypeRequest();
 		secureChannelTransaction->requestId_ = requestId;
 		std::iostream ios(&secureChannelTransaction->os_);
@@ -554,7 +610,7 @@ namespace OpcUaStackClient
 
 		Log(Debug, "session send request timeout")
 		    .parameter("RequestId", serviceTransaction->requestId_)
-	    	.parameter("SessionName", sessionConfig_.get() != nullptr ? sessionConfig_->sessionName_ : "NoSession")
+	    	.parameter("SessionName", mode_ != M_SecureChannel ? sessionConfig_->sessionName_ : "NoSession")
 	    	.parameter("AuthenticationToken", authenticationToken_)
 			.parameter("NodeType", serviceTransaction->nodeTypeResponse())
 			.parameter("RequestHandle", serviceTransaction->transactionId());
@@ -578,7 +634,7 @@ namespace OpcUaStackClient
 		if (objectSPtr.get() == nullptr) {
 			Log(Error, "session pending queue error, because element not exist")
 				.parameter("RequestId", secureChannelTransaction->requestId_)
-				.parameter("SessionName", sessionConfig_.get() != nullptr ? sessionConfig_->sessionName_ : "NoSession")
+				.parameter("SessionName", mode_ != M_SecureChannel ? sessionConfig_->sessionName_ : "NoSession")
 				.parameter("AuthenticationToken", authenticationToken_)
 				.parameter("TypeId", secureChannelTransaction->responseTypeNodeId_)
 				.parameter("RequestHandle", responseHeader->requestHandle());
@@ -593,7 +649,7 @@ namespace OpcUaStackClient
 
 		Log(Debug, "session receive response")
 		    .parameter("RequestId", secureChannelTransaction->requestId_)
-	    	.parameter("SessionName", sessionConfig_.get() != nullptr ? sessionConfig_->sessionName_ : "NoSession")
+	    	.parameter("SessionName", mode_ != M_SecureChannel ? sessionConfig_->sessionName_ : "NoSession")
 	    	.parameter("AuthenticationToken", authenticationToken_)
 			.parameter("ResponseType", OpcUaIdMap::longString(serviceTransaction->nodeTypeResponse().nodeId<uint32_t>()))
 			.parameter("ServiceResult", OpcUaStatusCodeMap::shortString(serviceTransaction->responseHeader()->serviceResult()));

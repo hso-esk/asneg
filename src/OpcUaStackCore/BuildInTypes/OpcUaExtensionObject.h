@@ -20,15 +20,17 @@
 
 #include <boost/property_tree/ptree.hpp>
 #include <map>
-#include "OpcUaStackCore/BuildInTypes/OpcUaNodeId.h"
-#include "OpcUaStackCore/BuildInTypes/OpcUaExtensionObjectBase.h"
+#include "OpcUaStackCore/Base/Log.h"
 #include "OpcUaStackCore/Base/ObjectPool.h"
 #include "OpcUaStackCore/Base/os.h"
+#include "OpcUaStackCore/Base/Xmlns.h"
+#include "OpcUaStackCore/BuildInTypes/OpcUaNodeId.h"
+#include "OpcUaStackCore/BuildInTypes/OpcUaExtensionObjectBase.h"
 
 namespace OpcUaStackCore
 {
 
-	typedef std::map<OpcUaNodeId,ExtensionObjectBase::BSPtr> ExtensionObjectMap;
+	typedef std::map<OpcUaNodeId,ExtensionObjectBase::SPtr> ExtensionObjectMap;
 
 	class DLLEXPORT OpcUaExtensionObject
 	: public Object
@@ -42,9 +44,9 @@ namespace OpcUaStackCore
 			S_ByteString
 		} Style;
 
-		static bool insertElement(OpcUaNodeId& opcUaNodeId, ExtensionObjectBase::BSPtr epSPtr);
+		static bool insertElement(OpcUaNodeId& opcUaNodeId, ExtensionObjectBase::SPtr epSPtr);
 		static bool deleteElement(OpcUaNodeId& opcUaNodeId);
-		static ExtensionObjectBase::BSPtr findElement(OpcUaNodeId& opcUaNodeId);
+		static ExtensionObjectBase::SPtr findElement(OpcUaNodeId& opcUaNodeId);
 
 	    OpcUaExtensionObject(void);
 		~OpcUaExtensionObject(void);
@@ -73,7 +75,7 @@ namespace OpcUaStackCore
 
 		template<typename T>
 		  bool registerFactoryElement(OpcUaNodeId& opcUaNodeId) {
-			  ExtensionObjectBase::BSPtr epSPtr(T::construct());
+			  ExtensionObjectBase::SPtr epSPtr(constructSPtr<T>());
 			  return OpcUaExtensionObject::insertElement(opcUaNodeId, epSPtr);
 		  }
 
@@ -83,7 +85,7 @@ namespace OpcUaStackCore
 		bool deregisterFactoryElement(OpcUaNodeId& opcUaNodeId);
 
 		bool createObject(void);
-		ExtensionObjectBase::BSPtr& get(void);
+		ExtensionObjectBase::SPtr& get(void);
 		template<typename T>
 		   typename T::SPtr parameter(OpcUaUInt32 typeId) {
 				this->typeId(typeId);
@@ -106,7 +108,7 @@ namespace OpcUaStackCore
 				   return epSPtr;
 			   }
 
-			   typename T::SPtr epSPtr = T::construct();
+			   typename T::SPtr epSPtr = constructSPtr<T>();
 			   style_ = S_Type;
 			   epSPtr_ = epSPtr;
 			   return epSPtr;
@@ -133,7 +135,9 @@ namespace OpcUaStackCore
 		void opcUaBinaryEncode(std::ostream& os) const;
 		void opcUaBinaryDecode(std::istream& is);
 		bool encode(boost::property_tree::ptree& pt) const;
-		bool decode(boost::property_tree::ptree& pt);
+		bool decode(boost::property_tree::ptree& pt, Xmlns& xmlns);
+
+		void logExtensionObjectMap(void);
 
 	  private:
 		static ExtensionObjectMap extentionObjectMap_;
@@ -141,7 +145,7 @@ namespace OpcUaStackCore
 
 		Style style_;
 		OpcUaNodeId typeId_;
-		ExtensionObjectBase::BSPtr epSPtr_;
+		ExtensionObjectBase::SPtr epSPtr_;
 		OpcUaByteString::SPtr byteString_;
 	};
 

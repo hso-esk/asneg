@@ -22,11 +22,11 @@ namespace OpcUaStackCore
 
 	EndpointDescription::EndpointDescription(void)
 	: endpointUrl_()
-	, applicationDescription_(ApplicationDescription::construct())
+	, applicationDescription_(constructSPtr<ApplicationDescription>())
 	, serverCertificate_()
 	, messageSecurityMode_()
 	, securityPolicyUri_()
-	, userIdentityTokens_(UserTokenPolicyArray::construct())
+	, userIdentityTokens_(constructSPtr<UserTokenPolicyArray>())
 	, transportProfileUri_()
 	, securityLevel_()
 	{
@@ -159,6 +159,19 @@ namespace OpcUaStackCore
 		transportProfileUri_.opcUaBinaryDecode(is);
 		OpcUaNumber::opcUaBinaryDecode(is, securityLevel_);
 		messageSecurityMode_ = (MessageSecurityMode)messageSecurityMode;
+	}
+
+	void
+	EndpointDescription::out(std::ostream& os)
+	{
+		os << "EndpointUrl="; endpointUrl_.out(os);
+		os << ", ApplicationDescription={";  applicationDescription_->out(os); os << "}";
+		os << ", ServerCertificate="; serverCertificate_.out(os);
+		os << ", MessageSecurityMode=" << (uint32_t)messageSecurityMode_;
+		os << ", SecurityPolicy="; securityPolicyUri_.out(os);
+		//os << ", UserIdentityTokens=[" << *userIdentityTokens_ << "]";
+		os << ", TransportProfileUri="; transportProfileUri_.out(os);
+		os << ", SecurityLevel=" << (uint32_t)securityLevel_;
 	}
 
 }

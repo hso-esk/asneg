@@ -1,5 +1,5 @@
 /*
-   Copyright 2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2016 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -17,6 +17,7 @@
 
 #include <boost/asio/streambuf.hpp>
 #include "OpcUaStackCore/BuildInTypes/OpcUaExtensionObject.h"
+#include "OpcUaStackCore/BuildInTypes/OpcUaIdentifier.h"
 #include "OpcUaStackCore/Base/Utility.h"
 
 namespace OpcUaStackCore
@@ -33,7 +34,7 @@ namespace OpcUaStackCore
 	ExtensionObjectMap OpcUaExtensionObject::extentionObjectMap_;
 
 	bool
-	OpcUaExtensionObject::insertElement(OpcUaNodeId& opcUaNodeId, ExtensionObjectBase::BSPtr epSPtr)
+	OpcUaExtensionObject::insertElement(OpcUaNodeId& opcUaNodeId, ExtensionObjectBase::SPtr epSPtr)
 	{
 		ExtensionObjectMap::iterator it;
 		it = extentionObjectMap_.find(opcUaNodeId);
@@ -56,10 +57,10 @@ namespace OpcUaStackCore
 		return true;
 	}
 
-	ExtensionObjectBase::BSPtr
+	ExtensionObjectBase::SPtr
 	OpcUaExtensionObject::findElement(OpcUaNodeId& opcUaNodeId)
 	{
-		ExtensionObjectBase::BSPtr epSPtr;
+		ExtensionObjectBase::SPtr epSPtr;
 		ExtensionObjectMap::iterator it;
 		it = extentionObjectMap_.find(opcUaNodeId);
 		if (it != extentionObjectMap_.end()) {
@@ -168,7 +169,7 @@ namespace OpcUaStackCore
 		return true;
 	}
 
-	ExtensionObjectBase::BSPtr&
+	ExtensionObjectBase::SPtr&
 	OpcUaExtensionObject::get(void)
 	{
 		return epSPtr_;
@@ -325,14 +326,70 @@ namespace OpcUaStackCore
 	}
 
 	bool
-	OpcUaExtensionObject::decode(boost::property_tree::ptree& pt)
+	OpcUaExtensionObject::decode(boost::property_tree::ptree& pt, Xmlns& xmlns)
 	{
-		boost::optional<boost::property_tree::ptree&> typeId;
-		typeId = pt.get_child_optional("TypeId");
-		if (!typeId) return false;
-		if (!typeId_.decode(*typeId)) return false;
+		// get typeId
+		boost::optional<boost::property_tree::ptree&> typeId = pt.get_child_optional(xmlns.add("TypeId"));
+		if (!typeId) {
+			Log(Error, "value empty")
+				.parameter("Tag", xmlns.add("TypeId"));
+			return false;
+		}
 
-		return true;
+		// get identifier
+		boost::optional<std::string> identifier = typeId->get_optional<std::string>(xmlns.add("Identifier"));
+		if (!identifier) {
+			Log(Error, "value empty")
+				.parameter("Tag", xmlns.add("Identifier"));
+			return false;
+		}
+
+		OpcUaNodeId xmlNodeIdType;
+		std::string s = *identifier;
+		s.erase(s.begin(), std::find_if(s.begin(), s.end(), std::not1(std::ptr_fun<int, int>(std::isspace))));
+		bool rc = xmlNodeIdType.fromString(s);
+		if (!rc) {
+			Log(Error, "value format error")
+				.parameter("Tag", xmlns.add("Identifier"))
+				.parameter("Identifier", s);
+			return false;
+		}
+
+		// get body
+		boost::optional<boost::property_tree::ptree&> body = pt.get_child_optional(xmlns.add("Body"));
+		if (!body) {
+			Log(Error, "value empty")
+				.parameter("Tag", xmlns.add("Body"))
+				.parameter("NodeIdType", xmlNodeIdType);
+			return false;
+		}
+
+		this->typeId(xmlNodeIdType);
+		if (!createObject()) {
+			// Extension object unknown
+			logExtensionObjectMap();
+			Log(Error, "extension object unknown")
+				.parameter("NodeIdType", xmlNodeIdType);
+			return false;
+		}
+
+		// Currently the XML type ist stored in the object. Now we determine
+		// the binary type by the XMl type.
+		typeId_ = epSPtr_->binaryTypeId();
+
+		// decode extension object from xml file
+		return epSPtr_->decode(*body, xmlns);
+	}
+
+	void
+	OpcUaExtensionObject::logExtensionObjectMap(void)
+	{
+		Log(Debug, "extension object map entries");
+
+		ExtensionObjectMap::iterator it;
+		for (it=extentionObjectMap_.begin(); it!=extentionObjectMap_.end(); it++) {
+			Log(Debug, "  ").parameter(" ", it->first);
+		}
 	}
 
 };

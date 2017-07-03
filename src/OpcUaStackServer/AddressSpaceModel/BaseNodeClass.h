@@ -1,5 +1,5 @@
 /*
-   Copyright 2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2017 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -21,7 +21,7 @@
 #include <vector>
 #include "OpcUaStackCore/Base/os.h"
 #include "OpcUaStackCore/BuildInTypes/BuildInTypes.h"
-#include "OpcUaStackCore/ServiceSetApplication/ForwardInfoSync.h"
+#include "OpcUaStackCore/ServiceSetApplication/ForwardNodeSync.h"
 #include "OpcUaStackServer/AddressSpaceModel/Attribute.h"
 #include "OpcUaStackServer/AddressSpaceModel/ReferenceType.h"
 #include "OpcUaStackServer/AddressSpaceModel/AttributeBase.h"
@@ -33,7 +33,8 @@ namespace OpcUaStackServer
 {
 
 	class DLLEXPORT BaseNodeClass
-	: public AttributeBase
+	: public Object
+	, public AttributeBase
 	{
 	  public: 
 		typedef boost::shared_ptr<BaseNodeClass> SPtr;
@@ -66,8 +67,8 @@ namespace OpcUaStackServer
 		void copyTo(BaseNodeClass& baseNodeClass);
 		virtual BaseNodeClass::SPtr clone(void) = 0;
 
-		void forwardInfoSync(ForwardInfoSync::SPtr forwardInfo);
-		ForwardInfoSync::SPtr forwardInfoSync(void);
+		void forwardNodeSync(ForwardNodeSync::SPtr forwardInfo);
+		ForwardNodeSync::SPtr forwardNodeSync(void);
 
 	  private:
 		NodeIdAttribute nodeId_;
@@ -80,7 +81,7 @@ namespace OpcUaStackServer
 
 		ReferenceItemMap referenceItemMap_;
 
-		ForwardInfoSync::SPtr forwardInfoSync_;
+		ForwardNodeSync::SPtr forwardNodeSync_;
 	};
 
 }

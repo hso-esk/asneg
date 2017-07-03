@@ -30,7 +30,7 @@ namespace OpcUaStackCore
 	typedef std::map<OpcUaNodeId,ExtensibleParameterBase::SPtr> ExtensibleParameterMap;
 
 	class DLLEXPORT ExtensibleParameter
-	: public  ObjectPool<ExtensibleParameter>
+	: public  Object
 	{
 	  public:
 		typedef boost::shared_ptr<ExtensibleParameter> SPtr;
@@ -107,7 +107,9 @@ namespace OpcUaStackCore
 		ExtensibleParameterBase::SPtr epSPtr_;
 	};
 
-	class ExtensibleParameterArray : public OpcUaArray<ExtensibleParameter::SPtr, SPtrTypeCoder<ExtensibleParameter> >, public ObjectPool<ExtensibleParameterArray> 
+	class ExtensibleParameterArray
+	: public OpcUaArray<ExtensibleParameter::SPtr, SPtrTypeCoder<ExtensibleParameter> >
+	, public Object
 	{
 	  public:
 		typedef boost::shared_ptr<ExtensibleParameterArray> SPtr;

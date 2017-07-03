@@ -1,5 +1,5 @@
 /*
-   Copyright 2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2017 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -51,17 +51,17 @@ namespace OpcUaStackServer
 	{
 	}
 
+	void
+	SessionManagerOld::discoveryService(DiscoveryService::SPtr& discoveryService)
+	{
+		discoveryService_ = discoveryService;
+		discoveryService_->discoveryManagerIf(this);
+	}
+
 	void 
 	SessionManagerOld::transactionManager(TransactionManager::SPtr transactionManagerSPtr)
 	{
 		transactionManagerSPtr_ = transactionManagerSPtr;
-	}
-
-	void 
-	SessionManagerOld::discoveryService(DiscoveryService::SPtr discoveryService)
-	{
-		discoveryService_ = discoveryService;
-		discoveryService_->discoveryManagerIf(this);
 	}
 
 	void
@@ -141,7 +141,7 @@ namespace OpcUaStackServer
 	SessionOld::SPtr
 	SessionManagerOld::createSession(void)
 	{
-		SessionOld::SPtr session = SessionOld::construct();
+		SessionOld::SPtr session = constructSPtr<SessionOld>();
 		session->transactionManager(transactionManagerSPtr_);
 		session->sessionManagerIf(this);
 		bool rc = SessionConfig::initial(session, prefixSessionConfig_, sessionConfig_);
@@ -161,7 +161,7 @@ namespace OpcUaStackServer
 	{
 		std::string host = url_.host();
 		boost::asio::io_service& io_service = ioService_->io_service();
-		tcpAcceptor_ = TCPAcceptor::construct(io_service, host, url_.port());
+		tcpAcceptor_ = constructSPtr<TCPAcceptor>(io_service, host, url_.port());
 		tcpAcceptor_->listen();
 
 		Log(Info, "open opc ua listener socket")
@@ -185,7 +185,7 @@ namespace OpcUaStackServer
 		bool rc;
 
 		// create secure channel
-		secureChannel = SecureChannelServer::construct(*ioService_);
+		secureChannel = constructSPtr<SecureChannelServer>(*ioService_);
 		secureChannel->secureChannelManagerIf(this);
 		rc = SecureChannelServerConfig::initial(secureChannel, prefixSecureChannelConfig_, secureChannelConfig_);
 		if (!rc) {
@@ -292,9 +292,16 @@ namespace OpcUaStackServer
 	bool 
 	SessionManagerOld::secureChannelMessage(SecureChannelTransaction::SPtr secureChannelTransaction)
 	{
+		//
+		// this function is called by the secure channel when a new message
+		// is received
+		//
+
 		switch (secureChannelTransaction->requestTypeNodeId_.nodeId<uint32_t>())
 		{
+			case OpcUaId_RegisterServerRequest_Encoding_DefaultBinary:
 			case OpcUaId_GetEndpointsRequest_Encoding_DefaultBinary:
+			case OpcUaId_FindServersRequest_Encoding_DefaultBinary:
 			{
 				return discoveryService_->message(secureChannelTransaction);
 			}

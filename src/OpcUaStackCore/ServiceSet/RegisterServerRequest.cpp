@@ -29,8 +29,8 @@ namespace OpcUaStackCore
 	// ------------------------------------------------------------------------
 
 	RegisterServerRequest::RegisterServerRequest(void)
-	: ObjectPool<RegisterServerRequest>()
-	, requestHeaderSPtr_(RequestHeader::construct())
+	: Object()
+	, requestHeaderSPtr_(constructSPtr<RequestHeader>())
 	, server_()
 	{
 	}
@@ -66,14 +66,14 @@ namespace OpcUaStackCore
 	void 
 	RegisterServerRequest::opcUaBinaryEncode(std::ostream& os) const
 	{
-		requestHeaderSPtr_->opcUaBinaryEncode(os);
+		//requestHeaderSPtr_->opcUaBinaryEncode(os);
 		server_.opcUaBinaryEncode(os);
 	}
 	
 	void 
 	RegisterServerRequest::opcUaBinaryDecode(std::istream& is)
 	{
-		requestHeaderSPtr_->opcUaBinaryDecode(is);
+		//requestHeaderSPtr_->opcUaBinaryDecode(is);
 		server_.opcUaBinaryDecode(is);
 	}
 

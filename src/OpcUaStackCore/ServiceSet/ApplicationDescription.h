@@ -1,5 +1,5 @@
 /*
-   Copyright 2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2017 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -24,23 +24,18 @@
 #include "OpcUaStackCore/BuildInTypes/OpcUaString.h"
 #include "OpcUaStackCore/BuildInTypes/OpcUaLocalizedText.h"
 #include "OpcUaStackCore/BuildInTypes/OpcUaArray.h"
+#include "OpcUaStackCore/ServiceSet/ApplicationType.h"
 
 namespace OpcUaStackCore
 {
 
-	typedef enum {
-		ApplicationType_Server = 0,
-		ApplicationType_Client = 1,
-		ApplicationType_ClientAndServer = 3,
-		ApplicationType_DiscoveryServer = 4
-	} ApplicationType;
-
 	class DLLEXPORT ApplicationDescription
-	: public ObjectPool<ApplicationDescription>
+	: public Object
 	, public ExtensionObjectBase
 	{
 	  public:
 		typedef boost::shared_ptr<ApplicationDescription> SPtr;
+		typedef std::vector<ApplicationDescription::SPtr> Vec;
 
 		ApplicationDescription(void);
 		virtual ~ApplicationDescription(void);
@@ -68,7 +63,7 @@ namespace OpcUaStackCore
 		bool operator==(const ApplicationDescription& applicationDescription) const;
 
 		//- ExtensionObjectBase -----------------------------------------------
-		ExtensionObjectBase::BSPtr factory(void);
+		ExtensionObjectBase::SPtr factory(void);
 		void opcUaBinaryEncode(std::ostream& os) const;
 		void opcUaBinaryDecode(std::istream& is);
 		void copyTo(ExtensionObjectBase& extensionObjectBase);
@@ -86,7 +81,9 @@ namespace OpcUaStackCore
 		OpcUaStringArray::SPtr discoveryUrls_;
 	};
 
-	class ApplicationDescriptionArray : public OpcUaArray<ApplicationDescription::SPtr, SPtrTypeCoder<ApplicationDescription> >, public ObjectPool<ApplicationDescriptionArray> 
+	class ApplicationDescriptionArray
+	: public OpcUaArray<ApplicationDescription::SPtr, SPtrTypeCoder<ApplicationDescription> >
+	, public Object
 	{
 	  public:
 		typedef boost::shared_ptr<ApplicationDescriptionArray> SPtr;

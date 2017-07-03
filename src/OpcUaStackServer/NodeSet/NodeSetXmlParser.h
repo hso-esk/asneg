@@ -1,5 +1,5 @@
 /*
-   Copyright 2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2017 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -42,6 +42,9 @@ namespace OpcUaStackServer
 		bool encode(boost::property_tree::ptree& ptree);
 
 		NodeSetNamespace& nodeSetNamespace(void);
+		NodeSetAlias& nodeSetAlias(void);
+		void enableDefinition(bool enableDefinition);
+		bool enableDefinition(void);
 
 	  private:
 		//
@@ -61,6 +64,8 @@ namespace OpcUaStackServer
 		bool decodeUAReferenceType(boost::property_tree::ptree& ptree);
 		bool decodeUAMethod(boost::property_tree::ptree& ptree);
 
+		bool decodeDataTypeDefinition(DataTypeNodeClass::SPtr& dataTypeNodeClass, boost::property_tree::ptree& ptree);
+
 		//
 		// encoder functions
 		//
@@ -77,10 +82,13 @@ namespace OpcUaStackServer
 		bool encodeUAReferenceType(boost::property_tree::ptree& ptree);
 		bool encodeUAMethod(boost::property_tree::ptree& ptree);
 
+		bool encodeDataTypeDefinition(DataTypeNodeClass::SPtr& dataTypeNodeClass, boost::property_tree::ptree& ptree);
+
 		bool uint32ArrayToString(std::string& value, OpcUaUInt32Array& array);
 		bool stringToNodeId(const std::string& nodeIdString, OpcUaNodeId& nodeId);
 		bool isProperty(VariableNodeClass::SPtr variableNodeClassSPtr);
 
+		bool enableDefinition_;
 		NodeSetAlias nodeSetAlias_;
 		NodeSetValueParser nodeSetValueParser_;
 		std::string xmlnsTypes_;

@@ -1,5 +1,5 @@
 /*
-   Copyright 2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2017 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -23,8 +23,9 @@ namespace OpcUaStackServer
 	ServiceSetBase::ServiceSetBase(void)
 	: Component()
 	, informationModel_()
-	, namespaceArray_(NamespaceArray::construct())
-	, serverArray_(ServerArray::construct())
+	, namespaceArray_(constructSPtr<NamespaceArray>())
+	, serverArray_(constructSPtr<ServerArray>())
+	, forwardGlobalSync_()
 	{
 	}
 
@@ -56,6 +57,18 @@ namespace OpcUaStackServer
 	ServiceSetBase::serverArray(void)
 	{
 		return serverArray_;
+	}
+
+	ForwardGlobalSync::SPtr
+	ServiceSetBase::forwardGlobalSync(void)
+	{
+		return forwardGlobalSync_;
+	}
+
+	void
+	ServiceSetBase::forwardGlobalSync(ForwardGlobalSync::SPtr forwardGlobalSync)
+	{
+		forwardGlobalSync_ = forwardGlobalSync;
 	}
 
 }

@@ -1,5 +1,5 @@
 /*
-   Copyright 2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2016 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -29,8 +29,8 @@ namespace OpcUaStackCore
 	// ------------------------------------------------------------------------
 
 	HistoryUpdateRequest::HistoryUpdateRequest(void)
-	: ObjectPool<HistoryUpdateRequest>()
-	, historyUpdateDetailsSPtr_(ExtensibleParameter::construct())
+	: Object()
+	, historyUpdateDetailsSPtr_(constructSPtr<ExtensibleParameterArray>())
 	{
 	}
 
@@ -38,14 +38,8 @@ namespace OpcUaStackCore
 	{
 	}
 
-	void 
-	HistoryUpdateRequest::historyUpdateDetails(const ExtensibleParameter::SPtr historyUpdateDetails)
-	{
-		historyUpdateDetailsSPtr_ = historyUpdateDetails;
-	}
-	
-	ExtensibleParameter::SPtr 
-	HistoryUpdateRequest::historyUpdateDetails(void) const
+	ExtensibleParameterArray::SPtr&
+	HistoryUpdateRequest::historyUpdateDetails(void)
 	{
 		return historyUpdateDetailsSPtr_;
 	}

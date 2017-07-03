@@ -1,5 +1,5 @@
 /*
-   Copyright 2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2017 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -31,7 +31,7 @@ namespace OpcUaStackServer
 
 	class DLLEXPORT ApplicationService
 	: public ServiceSetBase
-	, public ObjectPool<ApplicationService>
+	, public Object
 	{
 	  public:
 		typedef boost::shared_ptr<ApplicationService> SPtr;
@@ -44,9 +44,13 @@ namespace OpcUaStackServer
 		//- Component -----------------------------------------------------------------
 
 	  private:
-		void receiveRegisterForwardRequest(ServiceTransaction::SPtr serviceTransaction);
+		void receiveRegisterForwardNodeRequest(ServiceTransaction::SPtr serviceTransaction);
+		void receiveRegisterForwardMethodRequest(ServiceTransaction::SPtr serviceTransaction);
+		void receiveRegisterForwardGlobalRequest(ServiceTransaction::SPtr serviceTransaction);
 		void receiveGetNodeReferenceRequest(ServiceTransaction::SPtr serviceTransaction);
 		void receiveNamespaceInfoRequest(ServiceTransaction::SPtr serviceTransaction);
+		void receiveCreateNodeInstanceRequest(ServiceTransaction::SPtr serviceTransaction);
+		void receiveDelNodeInstanceRequest(ServiceTransaction::SPtr serviceTransaction);
 	};
 
 }

@@ -1,5 +1,5 @@
 /*
-   Copyright 2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2017 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -18,6 +18,7 @@
 #ifndef __OpcUaStackCore_Config_h__
 #define __OpcUaStackCore_Config_h__
 
+#include <boost/shared_ptr.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/lexical_cast.hpp>
 #include <vector>
@@ -32,6 +33,8 @@ namespace OpcUaStackCore
 	: public ConfigIf
 	{
 	  public:
+		typedef boost::shared_ptr<Config> SPtr;
+		typedef std::map<std::string, Config::SPtr> Map;
 		typedef std::map<std::string, std::string> AliasMap;
 
 		static Config* instance_;
@@ -45,6 +48,7 @@ namespace OpcUaStackCore
 		void child(boost::property_tree::ptree& child);
 		boost::property_tree::ptree& child(void);
 
+		bool setValue(const std::string& value);
 		bool setValue(const std::string& path, const std::string& value);
 		bool setChild(const std::string& path, Config& config);
 
@@ -142,8 +146,10 @@ namespace OpcUaStackCore
 		bool aliasExist(const std::string& aliasName);
 		void alias(const std::string& aliasName, const std::string& aliasValue);
 		std::string alias(const std::string& aliasName);
+		void out(std::ostream& os);
 
 	  private:
+		void out(std::ostream& os, boost::property_tree::ptree& ptree, uint32_t depth = 0);
 		void getValuesFromName(const std::string& valueName, std::vector<std::string>& valueVec);
 		void getChildFromName(const std::string& valueName, std::vector<Config>& valueVec);
 		static void substAlias(std::string& value);

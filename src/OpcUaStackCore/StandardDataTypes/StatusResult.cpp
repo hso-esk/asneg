@@ -1,5 +1,5 @@
 /*
-   Copyright 2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2016 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -21,7 +21,7 @@ namespace OpcUaStackCore
 {
 
 	StatusResult::StatusResult(void)
-	: ObjectPool<StatusResult>()
+	: Object()
 	, statusCode_()
 	, diagnosticInfo_()
 	{
@@ -78,10 +78,10 @@ namespace OpcUaStackCore
 	//
 	// ------------------------------------------------------------------------
 	// ------------------------------------------------------------------------
-	ExtensionObjectBase::BSPtr
+	ExtensionObjectBase::SPtr
 	StatusResult::factory(void)
 	{
-		return StatusResult::construct();
+		return constructSPtr<StatusResult>();
 	}
 
 	void

@@ -31,6 +31,11 @@ namespace OpcUaClient
 	, nodeIdVec_()
 	, startTime_()
 	, endTime_()
+	, timestampsToReturn_(TimestampsToReturn_Both)
+	, maxNumResultValuesPerNode_(2000)
+	, maxNumRequests_(-1)
+	, csvFileName_("")
+	, outputType_(T_Stdout)
 	{
 		startTime_ = boost::posix_time::from_iso_string("16010101T000000.000000000");
 		endTime_ = boost::posix_time::microsec_clock::universal_time();
@@ -108,6 +113,53 @@ namespace OpcUaClient
 				}
 			}
 		}
+		else if (parameterName == "-TIMESTAMPSTORETURN") {
+			std::string value = parameterValue;
+			boost::algorithm::to_upper(value);
+			if (value == "BOTH") {
+				timestampsToReturn_ = TimestampsToReturn_Both;
+			}
+			else if (value == "SERVER") {
+				timestampsToReturn_ = TimestampsToReturn_Server;
+			}
+			else if (value == "SOURCE") {
+				timestampsToReturn_ = TimestampsToReturn_Source;
+			}
+			else {
+				std::stringstream ss;
+				ss << "timestamp to return parameter invalid (" << parameterValue << ")";
+				errorMessage(ss.str());
+				return false;
+			}
+		}
+		else if (parameterName == "-MAXNUMRESULTVALUESPERNODE") {
+			try {
+				maxNumResultValuesPerNode_ = boost::lexical_cast<uint32_t>(parameterValue);
+			}
+			catch (...)
+			{
+				std::stringstream ss;
+				ss << "MaxNumResultValuesPerNode parameter invalid (" << parameterValue << ")";
+				errorMessage(ss.str());
+				return false;
+		    }
+		}
+		else if (parameterName == "-MAXNUMREQUESTS") {
+			try {
+				maxNumRequests_ = boost::lexical_cast<uint32_t>(parameterValue);
+			}
+			catch (...)
+			{
+				std::stringstream ss;
+				ss << "MaxNumRequests parameter invalid (" << parameterValue << ")";
+				errorMessage(ss.str());
+				return false;
+		    }
+		}
+		else if (parameterName == "-CSV") {
+			csvFileName_ = parameterValue;
+			outputType_ = T_CSVFile;
+		}
 		else {
 			std::stringstream ss;
 			ss << "invalid parameter " << parameterName;
@@ -131,7 +183,19 @@ namespace OpcUaClient
 		   << "     Format:\n"
 		   << "       ISO Format (Example: 16010101T120000.0)\n"
 		   << "       Now (Example: Now)\n"
-		   << "    -NodeId (1..N): NodeId of the value to read from opc ua server\n";
+		   << "    -NodeId (1..N): NodeId of the value to read from opc ua server\n"
+		   << "    -TimestampsToReturn (0..1): Selection of the timestamps to be returned\n"
+		   << "       Both - Return source timestamp and server timestamp\n"
+		   << "       Server - Return only server timestamp\n"
+		   << "       Source - Return only source timestamp\n"
+		   << "    -MaxNumResultValuesPerNode (0..1)\n"
+		   << "       Maximum number of results per node\n"
+		   << "    -MaxNumRequests (0..1)\n"
+		   << "       Maximum number of requests to the opc ua server\n"
+		   << "    -CSV (0..1)\n"
+		   << "       Name of a CSV file in which the variables are to be stored\n"
+		   << "     ";
+
 		return ss.str();
 	}
 
@@ -151,6 +215,48 @@ namespace OpcUaClient
 	CommandReadH::endTime(void)
 	{
 		return endTime_;
+	}
+
+	TimestampsToReturn
+	CommandReadH::timestampsToReturn(void)
+	{
+		return timestampsToReturn_;
+	}
+
+	uint32_t
+	CommandReadH::maxNumResultValuesPerNode(void)
+	{
+		return maxNumResultValuesPerNode_;
+	}
+
+	uint32_t
+	CommandReadH::maxNumRequests(void)
+	{
+		return maxNumRequests_;
+	}
+
+	void
+	CommandReadH::maxNumRequestsDec(void)
+	{
+		maxNumRequests_--;
+	}
+
+	std::string&
+	CommandReadH::csvFileName(void)
+	{
+		return csvFileName_;
+	}
+
+	CommandReadH::OutputType
+	CommandReadH::outputType(void)
+	{
+		return outputType_;
+	}
+
+	void
+	CommandReadH::outputType(OutputType outputType)
+	{
+		outputType_ = outputType;
 	}
 
 }

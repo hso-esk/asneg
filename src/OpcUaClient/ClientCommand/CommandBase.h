@@ -41,6 +41,7 @@ namespace OpcUaClient
 			Cmd_Read,
 			Cmd_Write,
 			Cmd_ReadH,
+			Cmd_WriteH,
 			Cmd_Delay,
 			Cmd_SubscriptionStart,
 			Cmd_SubscriptionStop,
@@ -49,7 +50,11 @@ namespace OpcUaClient
 			Cmd_NodeSetServer,
 			Cmd_NodeSetFilter,
 			Cmd_Browse,
-			Cmd_Function
+			Cmd_Function,
+			Cmd_BrowsePathToNodeId,
+			Cmd_GetEndpoint,
+			Cmd_FindServer,
+			Cmd_RegisterServer
 		} Cmd;
 
 		CommandBase(void);

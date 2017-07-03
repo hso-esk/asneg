@@ -1,5 +1,5 @@
 /*
-   Copyright 2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2016 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -21,7 +21,7 @@ namespace OpcUaStackCore
 {
 
 	ModelChangeStructureDataType::ModelChangeStructureDataType(void)
-	: ObjectPool<ModelChangeStructureDataType>()
+	: Object()
 	, affected_()
 	, affectedType_()
 	, verb_()
@@ -94,10 +94,10 @@ namespace OpcUaStackCore
 	//
 	// ------------------------------------------------------------------------
 	// ------------------------------------------------------------------------
-	ExtensionObjectBase::BSPtr
+	ExtensionObjectBase::SPtr
 	ModelChangeStructureDataType::factory(void)
 	{
-		return ModelChangeStructureDataType::construct();
+		return constructSPtr<ModelChangeStructureDataType>();
 	}
 
 	void

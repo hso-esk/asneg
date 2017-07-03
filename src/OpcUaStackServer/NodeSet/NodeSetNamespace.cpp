@@ -98,6 +98,41 @@ namespace OpcUaStackServer
 		return globalNamespaceIndex;
 	}
 
+	bool
+	NodeSetNamespace::updateGlobalNamespace(uint16_t globalNamespaceIndex, const std::string& namespaceUri)
+	{
+		if (globalNamespaceIndex >= globalNamespaceMap_.size()) return false;
+
+		// find old namespace Uri
+		std::string oldNamespaceUri = globalNamespaceVec_[globalNamespaceIndex];
+
+		NamespaceMap::iterator it;
+		it = globalNamespaceMap_.find(oldNamespaceUri);
+		if (it == globalNamespaceMap_.end()) return false;
+		globalNamespaceMap_.erase(it);
+
+		// update namesapce uri
+		globalNamespaceVec_[globalNamespaceIndex] = namespaceUri;
+		globalNamespaceMap_.insert(std::make_pair(namespaceUri, globalNamespaceIndex));
+
+		return true;
+	}
+
+	bool
+	NodeSetNamespace::delLastGlobalNamespace(void)
+	{
+		// find old namespace Uri
+		std::string namespaceUri = globalNamespaceVec_[globalNamespaceVec_.size()-1];
+		globalNamespaceVec_.erase(globalNamespaceVec_.begin() + globalNamespaceVec_.size() - 1);
+
+		NamespaceMap::iterator it;
+		it = globalNamespaceMap_.find(namespaceUri);
+		if (it == globalNamespaceMap_.end()) return false;
+		globalNamespaceMap_.erase(it);
+
+		return true;
+	}
+
 	std::string 
 	NodeSetNamespace::getGlobalNamespaceUri(uint16_t globalNamespaceIndex)
 	{
@@ -180,6 +215,18 @@ namespace OpcUaStackServer
 	NodeSetNamespace::addNewGlobalNamespace(const std::string& namespaceUri)
 	{
 		return addGlobalNamespace(namespaceUri);
+	}
+
+	bool
+	NodeSetNamespace::updateExistGlobalNamespace(uint16_t globalNamespaceIndex, const std::string& namespaceUri)
+	{
+		return updateGlobalNamespace(globalNamespaceIndex, namespaceUri);
+	}
+
+	bool
+	NodeSetNamespace::delLastExistGlobalNamespace(void)
+	{
+		return delLastGlobalNamespace();
 	}
 
 	NamespaceVec& 

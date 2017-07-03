@@ -25,6 +25,7 @@ BOOST_AUTO_TEST_CASE(RegisterServer_Request)
 	OpcUaNodeId typeId;
 	OpcUaGuid::SPtr opcUaGuidSPtr;
 	OpcUaString::SPtr stringSPtr;
+	OpcUaLocalizedText::SPtr localizedTextSPtr;
 	MessageHeader::SPtr messageHeaderSPtr;
 	SequenceHeader::SPtr sequenceHeaderSPtr;
 	RegisterServerRequest::SPtr registerServerRequestSPtr;
@@ -49,7 +50,7 @@ BOOST_AUTO_TEST_CASE(RegisterServer_Request)
 	OpcUaNumber::opcUaBinaryEncode(ios1, secureTokenId);
 
 	// encode sequence header
-	sequenceHeaderSPtr = SequenceHeader::construct();
+	sequenceHeaderSPtr = constructSPtr<SequenceHeader>();
 	sequenceHeaderSPtr->sequenceNumber(54);
 	sequenceHeaderSPtr->requestId(4);
 	sequenceHeaderSPtr->opcUaBinaryEncode(ios1);
@@ -59,27 +60,26 @@ BOOST_AUTO_TEST_CASE(RegisterServer_Request)
 	typeId.opcUaBinaryEncode(ios1);
 
 	// build 
-	registerServerRequestSPtr = RegisterServerRequest::construct();
+	registerServerRequestSPtr = constructSPtr<RegisterServerRequest>();
 
 	// build RequestHeader
 	opcUaGuidSPtr = constructSPtr<OpcUaGuid>();
 	*opcUaGuidSPtr = "0D4455B2-8D2F-B74F-864F-0AF5945DD833";
 	
-	registerServerRequestSPtr->requestHeader()->sessionAuthenticationToken().namespaceIndex(1);
-	registerServerRequestSPtr->requestHeader()->sessionAuthenticationToken().nodeId(opcUaGuidSPtr);
-	registerServerRequestSPtr->requestHeader()->time(ptime);
-	registerServerRequestSPtr->requestHeader()->requestHandle(0);
-	registerServerRequestSPtr->requestHeader()->returnDisagnostics(0);
-	registerServerRequestSPtr->requestHeader()->timeoutHint(300000);
-	
 	// build RegisteredServer
+	OpcUaLocalizedTextArray::SPtr serverNames = constructSPtr<OpcUaLocalizedTextArray>();
+	serverNames->resize(1);
+	localizedTextSPtr = constructSPtr<OpcUaLocalizedText>();
+	localizedTextSPtr->set("en", "TestString");
+
 	stringSPtr = constructSPtr<OpcUaString>();
 	stringSPtr->value("TestString");
 
 	registerServerRequestSPtr->server().serverUri("Uri1");
 	registerServerRequestSPtr->server().productUri("Uri2");
-	registerServerRequestSPtr->server().serverNames()->set(stringSPtr);
-	registerServerRequestSPtr->server().serverType(ApplicationType_Server);
+	registerServerRequestSPtr->server().serverNames(serverNames);
+	registerServerRequestSPtr->server().serverNames()->set(localizedTextSPtr);
+	registerServerRequestSPtr->server().serverType(AT_Server);
 	registerServerRequestSPtr->server().gatewayServerUri("Uri3");
 	registerServerRequestSPtr->server().discoveryUrls()->set(stringSPtr);
 	registerServerRequestSPtr->server().semaphoreFilePath("Path123");
@@ -89,7 +89,7 @@ BOOST_AUTO_TEST_CASE(RegisterServer_Request)
 	registerServerRequestSPtr->opcUaBinaryEncode(ios1);
 
 	// encode MessageHeader
-	messageHeaderSPtr = MessageHeader::construct();
+	messageHeaderSPtr = constructSPtr<MessageHeader>();
 	messageHeaderSPtr->messageType(MessageType_Message);
 	messageHeaderSPtr->messageSize(OpcUaStackCore::count(sb1)+8);
 	messageHeaderSPtr->opcUaBinaryEncode(ios2);
@@ -99,21 +99,18 @@ BOOST_AUTO_TEST_CASE(RegisterServer_Request)
 	OpcUaStackCore::dumpHex(ios);
 	
 	std::stringstream ss;
-	ss << "4d 53 47 46 96 00 00 00  d9 7a 25 09 01 00 00 00"
-	   << "36 00 00 00 04 00 00 00  01 00 b5 01 04 01 00 0d"
-	   << "44 55 b2 8d 2f b7 4f 86  4f 0a f5 94 5d d8 33 00"
-	   << "00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 ff"	
-	   << "ff ff ff e0 93 04 00 00  00 00 04 00 00 00 55 72"
-	   << "69 31 04 00 00 00 55 72  69 32 01 00 00 00 0a 00"
-	   << "00 00 54 65 73 74 53 74  72 69 6e 67 00 00 00 00"
-	   << "04 00 00 00 55 72 69 33  01 00 00 00 0a 00 00 00"
-	   << "54 65 73 74 53 74 72 69  6e 67 07 00 00 00 50 61"
-	   << "74 68 31 32 33 01";
+	ss << "4d 53 47 46 6f 00 00 00  d9 7a 25 09 01 00 00 00"
+	   << "36 00 00 00 04 00 00 00  01 00 b5 01 04 00 00 00"
+	   << "55 72 69 31 04 00 00 00  55 72 69 32 01 00 00 00"
+	   << "03 02 00 00 00 65 6e 0a  00 00 00 54 65 73 74 53"
+	   << "74 72 69 6e 67 00 00 00  00 04 00 00 00 55 72 69"
+	   << "33 01 00 00 00 0a 00 00  00 54 65 73 74 53 74 72"
+	   << "69 6e 67 07 00 00 00 50  61 74 68 31 32 33 01";
 
 	BOOST_REQUIRE(OpcUaStackCore::compare(ios, ss.str(), pos) == true);
 
 	// decode MessageHeader
-	messageHeaderSPtr = MessageHeader::construct();
+	messageHeaderSPtr = constructSPtr<MessageHeader>();
 	messageHeaderSPtr->opcUaBinaryDecode(ios);
 	BOOST_REQUIRE(messageHeaderSPtr->messageType() == MessageType_Message);
 
@@ -124,7 +121,7 @@ BOOST_AUTO_TEST_CASE(RegisterServer_Request)
 	BOOST_REQUIRE(secureTokenId == 1);
 
 	// decode sequence header
-	sequenceHeaderSPtr = SequenceHeader::construct();
+	sequenceHeaderSPtr = constructSPtr<SequenceHeader>();
 	sequenceHeaderSPtr->opcUaBinaryDecode(ios);
 	BOOST_REQUIRE(sequenceHeaderSPtr->sequenceNumber() == 54);
 	BOOST_REQUIRE(sequenceHeaderSPtr->requestId() == 4);
@@ -135,26 +132,17 @@ BOOST_AUTO_TEST_CASE(RegisterServer_Request)
 	BOOST_REQUIRE(typeId.nodeId<OpcUaUInt32>() == OpcUaId_RegisterServerRequest_Encoding_DefaultBinary);
 
 	// decode
-	registerServerRequestSPtr = RegisterServerRequest::construct();
+	registerServerRequestSPtr = constructSPtr<RegisterServerRequest>();
 	registerServerRequestSPtr->opcUaBinaryDecode(ios);
-
-	std::string str;
-	str = *registerServerRequestSPtr->requestHeader()->sessionAuthenticationToken().nodeId<OpcUaGuid::SPtr>();
-	BOOST_REQUIRE(registerServerRequestSPtr->requestHeader()->sessionAuthenticationToken().namespaceIndex() == 1);
-	BOOST_REQUIRE(str == "0D4455B2-8D2F-B74F-864F-0AF5945DD833");
-	BOOST_REQUIRE(registerServerRequestSPtr->requestHeader()->time().dateTime() == ptime);
-	BOOST_REQUIRE(registerServerRequestSPtr->requestHeader()->requestHandle() == 0);
-	BOOST_REQUIRE(registerServerRequestSPtr->requestHeader()->returnDisagnostics() == 0);
-	BOOST_REQUIRE(registerServerRequestSPtr->requestHeader()->timeoutHint() == 300000);
 	
 	BOOST_REQUIRE(registerServerRequestSPtr->server().serverUri().value() == "Uri1");
 	BOOST_REQUIRE(registerServerRequestSPtr->server().productUri().value() == "Uri2");
 
 	BOOST_REQUIRE(registerServerRequestSPtr->server().serverNames()->size() == 1);
-	registerServerRequestSPtr->server().serverNames()->get(stringSPtr);
-	BOOST_REQUIRE(stringSPtr->value() == "TestString");
+	registerServerRequestSPtr->server().serverNames()->get(localizedTextSPtr);
+	BOOST_REQUIRE(localizedTextSPtr->text().value() == "TestString");
 
-	BOOST_REQUIRE(registerServerRequestSPtr->server().serverType() == ApplicationType_Server);
+	BOOST_REQUIRE(registerServerRequestSPtr->server().serverType() == AT_Server);
 	BOOST_REQUIRE(registerServerRequestSPtr->server().gatewayServerUri().value() == "Uri3");
 
 	BOOST_REQUIRE(registerServerRequestSPtr->server().discoveryUrls()->size() == 1);
@@ -201,7 +189,7 @@ BOOST_AUTO_TEST_CASE(RegisterServer_Response)
 	OpcUaNumber::opcUaBinaryEncode(ios1, secureTokenId);
 
 	// encode sequence header
-	sequenceHeaderSPtr = SequenceHeader::construct();
+	sequenceHeaderSPtr = constructSPtr<SequenceHeader>();
 	sequenceHeaderSPtr->sequenceNumber(54);
 	sequenceHeaderSPtr->requestId(4);
 	sequenceHeaderSPtr->opcUaBinaryEncode(ios1);
@@ -223,7 +211,7 @@ BOOST_AUTO_TEST_CASE(RegisterServer_Response)
 	registerServerResponseSPtr->opcUaBinaryEncode(ios1);
 
 	// encode MessageHeader
-	messageHeaderSPtr = MessageHeader::construct();
+	messageHeaderSPtr = constructSPtr<MessageHeader>();
 	messageHeaderSPtr->messageType(MessageType_Message);
 	messageHeaderSPtr->messageSize(OpcUaStackCore::count(sb1)+8);
 	messageHeaderSPtr->opcUaBinaryEncode(ios2);
@@ -241,7 +229,7 @@ BOOST_AUTO_TEST_CASE(RegisterServer_Response)
 	BOOST_REQUIRE(OpcUaStackCore::compare(ios, ss.str(), pos) == true);
 
 	// decode MessageHeader
-	messageHeaderSPtr = MessageHeader::construct();
+	messageHeaderSPtr = constructSPtr<MessageHeader>();
 	messageHeaderSPtr->opcUaBinaryDecode(ios);
 	BOOST_REQUIRE(messageHeaderSPtr->messageType() == MessageType_Message);
 
@@ -252,7 +240,7 @@ BOOST_AUTO_TEST_CASE(RegisterServer_Response)
 	BOOST_REQUIRE(secureTokenId == 1);
 
 	// decode sequence header
-	sequenceHeaderSPtr = SequenceHeader::construct();
+	sequenceHeaderSPtr = constructSPtr<SequenceHeader>();
 	sequenceHeaderSPtr->opcUaBinaryDecode(ios);
 	BOOST_REQUIRE(sequenceHeaderSPtr->sequenceNumber() == 54);
 	BOOST_REQUIRE(sequenceHeaderSPtr->requestId() == 4);
