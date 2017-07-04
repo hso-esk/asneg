@@ -175,6 +175,16 @@ message(STATUS "  openssl library: ${OPENSSL_CRYPTO_LIBRARY}")
 message(STATUS "  crypto library: ${OPENSSL_SSL_LIBRARY}")
 message(STATUS "  libraries: ${OPENSSL_LIBRARIES}")
 
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+#
+# Additional definitions
+#
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+add_definitions(-std=c++11)
+add_definitions(-DOPCUA_LWM2M_SERVER_USE_THREAD)
+
 
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
@@ -192,8 +202,10 @@ include(OpcUaStackServer/CMakeLists.txt)
 include(OpcUaServer/CMakeLists.txt)
 include(OpcUaClient/CMakeLists.txt) 
 include(OpcUaProjectBuilder/CMakeLists.txt)
-
-
+include(../../niki/opcua-lwm2m-server/CMakeLists.txt)
+include(../../niki/opcua-sensor-interface/CMakeLists.txt)
+include(../../niki/eddl/CMakeLists.txt)
+include(../../niki/ipso/CMakeLists.txt)
 
 
 
