@@ -1,15 +1,15 @@
 /*
    Copyright 2015-2017 Kai Huebl (kai@huebl-sgh.de)
 
-   Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
-   Datei nur in Übereinstimmung mit der Lizenz erlaubt.
+   Lizenziert gem���� Apache Licence Version 2.0 (die ���Lizenz���); Nutzung dieser
+   Datei nur in ��bereinstimmung mit der Lizenz erlaubt.
    Eine Kopie der Lizenz erhalten Sie auf http://www.apache.org/licenses/LICENSE-2.0.
 
-   Sofern nicht gemäß geltendem Recht vorgeschrieben oder schriftlich vereinbart,
+   Sofern nicht gem���� geltendem Recht vorgeschrieben oder schriftlich vereinbart,
    erfolgt die Bereitstellung der im Rahmen der Lizenz verbreiteten Software OHNE
-   GEWÄHR ODER VORBEHALTE – ganz gleich, ob ausdrücklich oder stillschweigend.
+   GEW��HR ODER VORBEHALTE ��� ganz gleich, ob ausdr��cklich oder stillschweigend.
 
-   Informationen über die jeweiligen Bedingungen für Genehmigungen und Einschränkungen
+   Informationen ��ber die jeweiligen Bedingungen f��r Genehmigungen und Einschr��nkungen
    im Rahmen der Lizenz finden Sie in der Lizenz.
 
    Autor: Kai Huebl (kai@huebl-sgh.de)
@@ -64,6 +64,14 @@ namespace OpcUaStackServer
 
 		ApplicationInfo* applicationInfo(void) {
 			return applicationInfo_;
+		}
+
+		void informationModel(InformationModel::SPtr model) {
+		  informationModel_ = model;
+		}
+
+		InformationModel::SPtr informationModel(void) {
+		  return informationModel_;
 		}
 
 		virtual std::string version(void)
