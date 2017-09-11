@@ -219,7 +219,7 @@ include(../../niki/opcua-lwm2m-server/CMakeLists.txt)
 include(../../niki/opcua-sensor-interface/CMakeLists.txt)
 include(../../niki/eddl/CMakeLists.txt)
 include(../../niki/ipso/CMakeLists.txt)
-
+include(../../niki/asneg-dbserver/CMakeLists.txt)
 
 
 
