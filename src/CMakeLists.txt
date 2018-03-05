@@ -196,7 +196,7 @@ find_package(Threads REQUIRED)
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
 add_definitions(-std=c++11)
-add_definitions(-DOPCUA_LWM2M_SERVER_USE_THREAD)
+#add_definitions(-DOPCUA_LWM2M_SERVER_USE_THREAD)
 
 
 # -----------------------------------------------------------------------------
