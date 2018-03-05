@@ -1,5 +1,9 @@
 Debug
 Release
+build-arm-debug
+build-arm-release
+build-x86-amd64-release
+build-x86-amd64-debug
 ipch
 *.sdf
 *.suo
