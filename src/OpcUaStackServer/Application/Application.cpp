@@ -102,7 +102,6 @@ namespace OpcUaStackServer
 	void
 	Application::receive(Message::SPtr message)
 	{
-		std::cout << "Application::receive" << std::endl;
 		ServiceTransaction::SPtr serviceTransaction = boost::static_pointer_cast<ServiceTransaction>(message);
 
 		// check if transaction is synchron
