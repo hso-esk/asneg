@@ -31,10 +31,10 @@ handleArch() {
 	then
 		case $ARCH in 
 			arm)
-			ARCH_NAME="-arm"
+			ARCH_NAME="arm"
 			;;
-			x_86) 
-			ARCH_NAME="-x86-amd64"
+			x86) 
+			ARCH_NAME="x86-amd64"
 			;;
 		esac
 	fi
@@ -43,14 +43,13 @@ handleArch() {
 createInstallDir () {
 	if [ ! -z "$ARCH_NAME" ]
 		then
+                INSTALL_DIR=${DEPENDENCY_BASE_DIR}boost_${BOOST_VER}-${ARCH_NAME}
 		case $ARCH_NAME in 
-			-arm)
-			INSTALL_DIR=${DEPENDENCY_BASE_DIR}boost_${BOOST_VER}${ARCH_NAME}
+			arm)			
 			apt-get install -y gcc-4.9-arm-linux-gnueabihf g++-4.9-arm-linux-gnueabihf 
 			ARM_FLAG=1
 			;;
-			-x86-amd64) 
-			INSTALL_DIR=${DEPENDENCY_BASE_DIR}boost_${BOOST_VER}${ARCH_NAME}
+			x86-amd64) 
 			apt-get install -y gcc-4.9 g++-4.9 cpp-4.9
 			ARM_FLAG=0
 			;;
@@ -79,12 +78,12 @@ createPackaging() {
 		if [ $ARM_FLAG -eq 1 ]${BOOST}${BOOST_VER}
 		then
 		sed -i '12s/.*/  using gcc : arm : arm-linux-gnueabihf-gcc-4.9 : <compileflags>-std=c++11 ;/' project-config.jam
-		echo "Installing with b2 to" ${INSTALL_DIR}/boost${ARCH_NAME}_${BOOST_VER}
-			./b2 install --prefix=${INSTALL_DIR}/../../boost${ARCH_NAME}_${BOOST_VER} -link=shared toolset=gcc-arm --with-atomic --with-thread --with-chrono --with-date_time --with-system --with-test --with-filesystem --with-program_options --with-regex
+		echo "Installing with b2 to" ${INSTALL_DIR}/boost-${ARCH_NAME}_${BOOST_VER}
+			./b2 install --prefix=${INSTALL_DIR}/../../boost-${ARCH_NAME}_${BOOST_VER} -link=shared toolset=gcc-arm --with-atomic --with-thread --with-chrono --with-date_time --with-system --with-test --with-filesystem --with-program_options --with-regex
 		else 
 		sed -i '12s/.*/  using gcc : 4.9 : g++-4.9 : <compileflags>-std=c++11 ;/' project-config.jam
-		echo "Installing with b2 to" ${INSTALL_DIR}/boost${ARCH_NAME}_${BOOST_VER}
-		./b2 install --prefix=${INSTALL_DIR}/../../boost${ARCH_NAME}_${BOOST_VER} -link=shared toolset=gcc-4.9 --with-atomic --with-thread --with-chrono --with-date_time --with-system --with-test --with-filesystem --with-program_options --with-regex
+		echo "Installing with b2 to" ${INSTALL_DIR}/boost-${ARCH_NAME}_${BOOST_VER}
+		./b2 install --prefix=${INSTALL_DIR}/../../boost-${ARCH_NAME}_${BOOST_VER} -link=shared toolset=gcc-4.9 --with-atomic --with-thread --with-chrono --with-date_time --with-system --with-test --with-filesystem --with-program_options --with-regex
 		 fi
 	fi
 }
