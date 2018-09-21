@@ -184,6 +184,43 @@ message(STATUS "  libraries: ${OPENSSL_LIBRARIES}")
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
 #
+# threads
+#
+# BOOST_ROOT             - Preferred installation prefix
+#
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+find_package(Threads REQUIRED)
+
+
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+#
+# Additional definitions
+#
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+add_definitions(-std=c++11)
+#add_definitions(-DOPCUA_LWM2M_SERVER_USE_THREAD)
+
+
+# Mosquitto
+#
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+if (DEFINED ENV{USE_MOSQUITTO_CLIENT})
+	message(STATUS "Mosquitto enabled")
+	set(USE_MOSQUITTO_CLIENT $ENV{USE_MOSQUITTO_CLIENT})
+	set(MOSQUITTO_LIBRARIES "mosquitto")
+	add_definitions(-DUSE_MOSQUITTO_CLIENT)
+else()
+        message(STATUS "Mosquitto disabled")
+endif()
+
+
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+#
 # build subdirectories
 #
 # -----------------------------------------------------------------------------
@@ -201,6 +238,12 @@ include(OpcUaProjectBuilder/CMakeLists.txt)
 include(OpcUaEventTypeGenerator/CMakeLists.txt)
 include(cmake/CMakeLists.txt)
 
+include(../../opcua-plugin/logger/CMakeLists.txt)
+include(../../opcua-plugin/lwm2m-server/CMakeLists.txt)
+include(../../opcua-plugin/lwm2m-server-interface/CMakeLists.txt)
+include(../../opcua-plugin/eddl/CMakeLists.txt)
+include(../../opcua-plugin/ipso/CMakeLists.txt)
+include(../../opcua-plugin/database/CMakeLists.txt)
 
 
 
