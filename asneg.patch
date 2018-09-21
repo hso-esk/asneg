@@ -1,8 +1,56 @@
 diff --git a/asneg.patch b/asneg.patch
-index 401bdc1..e69de29 100644
+index f55c15f..e69de29 100644
 --- a/asneg.patch
 +++ b/asneg.patch
-@@ -1,31 +0,0 @@
+@@ -1,79 +0,0 @@
+-diff --git a/asneg.patch b/asneg.patch
+-index 401bdc1..e69de29 100644
+---- a/asneg.patch
+-+++ b/asneg.patch
+-@@ -1,31 +0,0 @@
+--diff --git a/src/OpcUaStackServer/Application/ApplicationIf.h b/src/OpcUaStackServer/Application/ApplicationIf.h
+--index 56c4f70..fd4e900 100644
+----- a/src/OpcUaStackServer/Application/ApplicationIf.h
+--+++ b/src/OpcUaStackServer/Application/ApplicationIf.h
+--@@ -24,6 +24,7 @@
+-- #include "OpcUaStackCore/Certificate/CryptoManager.h"
+-- #include "OpcUaStackServer/Application/ApplicationServiceIf.h"
+-- #include "OpcUaStackServer/Application/ApplicationInfo.h"
+--+#include "OpcUaStackServer/InformationModel/InformationModel.h"
+-- 
+-- namespace OpcUaStackServer
+-- {
+--@@ -80,9 +81,17 @@ namespace OpcUaStackServer
+-- 		void applicationData(ApplicationData::SPtr& applicationData);
+-- 		ApplicationData::SPtr& applicationData(void);
+-- 
+--+		void informationModel(InformationModel::SPtr model) {
+--+		  informationModel_ = model;
+--+		}
+--+
+--+		InformationModel::SPtr informationModel(void) {
+--+		  return informationModel_;
+--+		}
+--+
+-- 	  private:
+-- 		ApplicationData::SPtr applicationData_;
+---
+--+		InformationModel::SPtr informationModel_;
+-- 	};
+-- 
+-- }
+-diff --git a/src/OpcUaServer/Server/Server.cpp b/src/OpcUaServer/Server/Server.cpp
+-index 663e9c0..6be9e20 100644
+---- a/src/OpcUaServer/Server/Server.cpp
+-+++ b/src/OpcUaServer/Server/Server.cpp
+-@@ -93,6 +93,7 @@ namespace OpcUaServer
+- 			if (!success) return false;
+- 
+- 			applicationLibrary->applicationIf()->config(config_);
+-+			applicationLibrary->applicationIf()->informationModel(server_.getInformationModel());
+- 		}
+- 		return true;
+- 	}
 -diff --git a/src/OpcUaStackServer/Application/ApplicationIf.h b/src/OpcUaStackServer/Application/ApplicationIf.h
 -index 56c4f70..fd4e900 100644
 ---- a/src/OpcUaStackServer/Application/ApplicationIf.h
