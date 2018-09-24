@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash 
 #  @author: Dovydas Girdvainis 
 #  @date  : 2018-09-10
 
@@ -9,12 +9,18 @@ PACKAGE_DIR=$PACKER_DIR/opcua/
 DEPENDENCY_BASE_DIR=../../../../../../
 
 ## Private variable declarations
+ARG_COUNT=$#
 MIN_ARG_COUNT=2
-PACKAGE_TYPE="none" 
-BINARIES_DIR="none" 
-BOOST_VER="none"
-ARCH="none"
-PACKAGE_VERSION="none"
+PACKAGE_TYPE="" 
+BINARIES_DIR="" 
+BOOST_VER=""
+ARCH=""
+PACKAGE_VERSION=""
+PROJECTS=()
+
+SUPPORTED_PACKAGE_TYPES=("DEBUG","RELEASE")
+SUPPORTED_ARCHS=("x86-amd64","arm")
+SUPPORTED_BOOST_VERSIONS=("1_54_0","1_67_0")
 
 ## Color codes
 RED='\033[1;31m'
@@ -25,28 +31,16 @@ NC='\033[0m'
 
 ## Internal functions 
 
-getBoostVer () {
-
-if [ $# -eq 3 ];
-then 
-	case $3 in 
-		1_54_0)
-			BOOST_VER="1_54_0"
-			;;
-		1_67_0)
-			BOOST_VER="1_67_0"
-			;;
-		*)
-			BOOST_VER="1_54_0"
-			echo "$RED Unsupported BOOST version! Setting the default $BLUE boost-$BOOST_VER $RED version $NC"
-			echo "$PURPLE SUpported versions: $BLUE [1_54_0 | 1_67_0] $NC"
-			;;
-	esac
-else 
-	BOOST_VER="1_54_0"
-	echo "$PURPLE No boost version has been provided! Using the default $BLUE boost-$BOOST_VER $NC"
-fi
+usage () {
+	echo "-t | --type	- specify the package type ( DEBUG | RELEASE )"
+	echo "-a | --arch    	- specify the packaing architechture (x86 | arm)"
+	echo "-v | --ver     	- specify the package label version"
+	echo "-b | --boost	- OPTIONAL specify boost version ( 1_54_0 | 1_67_0 )"
+	echo "-p | --project	- OPTIONAL specify project specific xml descriptors (for example Ameli or Parsifal), can spcify more than one"
+	echo "-h | --help	- prints this message"
+	echo "packageOPCUA.sh --type DEBUG --arch arm --ver 1.2 --boost 1_54_0 --project Ameli --project Parsifal"
 }
+
 
 packageArmBinaries () {
 
@@ -55,7 +49,7 @@ if [ -d "${DEPENDENCY_BASE_DIR}/openssl/lib" ];
 then 
 	cp -rf ${DEPENDENCY_BASE_DIR}/openssl/lib/* $PACKAGE_DIR/bin
 else 
-	echo "$RED NO OPENSSL for arm has been found! Try running the Dependency_Installer! $NC"
+	echo -e "$RED NO OPENSSL for arm has been found! Try running the Dependency_Installer! $NC"
 	exit 1
 fi 
 
@@ -64,7 +58,7 @@ if [ -d "${DEPENDENCY_BASE_DIR}/odbc-$ARCH/lib" ];
 then 
 	cp ${DEPENDENCY_BASE_DIR}/odbc-$ARCH/lib/libodbc.* $PACKAGE_DIR/bin
 else 
-	echo "$RED NO ODBC for arm has been found! Try running the Dependency_Installer! $NC"
+	echo -e "$RED NO ODBC for arm has been found! Try running the Dependency_Installer! $NC"
 	exit 1
 fi
 
@@ -83,9 +77,30 @@ EOF
 
 }
 
+handleProjectSpecifics () {
+
+for PROJECT in "${PROJECTS[@]}"
+do
+	## Check if Project directory exists
+	if [ -e ${BINARIES_ROOT_DIR}../${PROJECT}-XMLS ]; then 
+		## Copy the project specific xmls 
+		cp -rf ${BINARIES_ROOT_DIR}../${PROJECT}-XMLS ${PACKAGE_DIR}
+		
+		## Create project specific launchers 
+		cp ${PACKAGE_DIR}opcua-run.sh ${PACKAGE_DIR}opcua-run_${PROJECT}sh
+
+		## Edit project specific launcher 
+		sed -i "7s/cfg/${PROJECT}-XMLS\/cfg/" "${PACKAGE_DIR}opcua-run_${PROJECT}.sh"
+	else 
+		echo -e "$RED ${PROJECT} xml description directory not found at: ${BINARIES_ROOT_DIR}../${PROJECT}-XMLS $NC"
+	fi
+done
+
+}
+
 packageBinaries () {
 	BINARIES_DIR=$(pwd) 
-	echo "$GREEN Packaging the OPC UA server binaries from $PURPLE $BINARIES_DIR $GREEN for $PACKAGE_TYPE... $NC"
+	echo -e "$GREEN Packaging the OPC UA server binaries from $PURPLE $BINARIES_DIR $GREEN for $PACKAGE_TYPE... $NC"
 
 	cd $PACKER_DIR
  
@@ -114,7 +129,7 @@ packageBinaries () {
 	then 
 		cp ${DEPENDENCY_BASE_DIR}boost-${ARCH}_${BOOST_VER}/lib/* $PACKAGE_DIR/bin
 	else 
-		echo "$RED Boost libraries not found at ${DEPENDENCY_BASE_DIR}boost-${ARCH}_${BOOST_VER}/lib! Try the Dependency_Installer! $NC"
+		echo -e "$RED Boost libraries not found at ${DEPENDENCY_BASE_DIR}boost-${ARCH}_${BOOST_VER}/lib! Try the Dependency_Installer! $NC"
 		exit 1
 	fi
 	
@@ -137,17 +152,10 @@ packageBinaries () {
 	## Copy the standard xml files 
 	cp -rf ${BINARIES_ROOT_DIR}../cfg ${PACKAGE_DIR}
 
-	## Copy the project specific xmls 
-	cp -rf ${BINARIES_ROOT_DIR}../Amelis-XMLS ${PACKAGE_DIR}
-	cp -rf ${BINARIES_ROOT_DIR}../Parsifal-XMLS ${PACKAGE_DIR}
-	
-	## Create project specific launchers 
-	cp ${PACKAGE_DIR}opcua-run.sh ${PACKAGE_DIR}opcua-run_Ameli.sh
-	cp ${PACKAGE_DIR}opcua-run.sh ${PACKAGE_DIR}opcua-run_Parsifal.sh
-
-	## Edit project specific launcher 
-	sed -i "7s/cfg/Amelis-XMLS\/cfg/" "${PACKAGE_DIR}opcua-run_Ameli.sh"
-	sed -i "7s/cfg/Parsifal-XMLS\/cfg/" "${PACKAGE_DIR}opcua-run_Parsifal.sh"
+	if [ -n $PROJECTS ]; 
+	then 
+		handleProjectSpecifics
+	fi
 
 	## Tar the files 
 	tar -cvf opcua-server_v${PACKAGE_VERSION}_${ARCH}_${PACKAGE_TYPE}.tar opcua
@@ -155,58 +163,122 @@ packageBinaries () {
 	## Remove the package directory 
 	rm -rf ${PACKAGE_DIR}
 
-	echo "$GREEN Packaging complete! $NC"
+	echo -e "$GREEN Packaging complete! $NC"
 	exit 0
 }
 
 doPackaging () {
 	if [ -d "${BINARIES_ROOT_DIR}$BINARIES_DIR" ]; 
 	then
-		cd ${BINARIES_ROOT_DIR}${BINARIES_DIR}
+		cd ${BINARIES_ROOT_DIR}build-${ARCH}-"${PACKAGE_TYPE,,}"
 		packageBinaries
 	else 
-		echo "$RED Directory $BINARIES_DIR in $BINARIES_ROOT_DIR does not exist! $NC"
+		echo -e "$RED Directory $BINARIES_DIR in $BINARIES_ROOT_DIR does not exist! $NC"
 	fi
 }
 
-if [ $# -lt $MIN_ARG_COUNT ]
-	then 
-		echo "$RED Please provide the package type: $BLUE[--DEBUG_x86 | --RELEASE_x86 | --DEBUG_arm | --RELEASE_arm] and the package version, for examle $BLUE [0.1] $NC"
-		exit 1
-	else 
-		PACKAGE_VERSION=$2
+checkMandatoryArgs () {
+
+## Check packaging type
+if [[ ! "${SUPPORTED_PACKAGE_TYPES[*]}" =~ "${PACKAGE_TYPE^^}" ]];
+
+then 
+	echo -e "$RED Unsupported package type : $PACKAGE_TYPE ! $NC"
+	echo -e "$PURPLE Supported package types are: $SUPPORTED_PACKAGE_TYPES $NC"
+	exit 1
 fi
 
-case $1 in 
-	--DEBUG_x86) 
-		ARCH="x86-amd64"
-		PACKAGE_TYPE="debug"
-		BINARIES_DIR="build-x86-amd64-debug"
-		getBoostVer
-		doPackaging
-		;;
-	--RELEASE_x86) 
-		ARCH="x86-amd64"
-		PACKAGE_TYPE="release"
-		BINARIES_DIR="build-x86-amd64-release"
-		getBoostVer
-		doPackaging
-		;;
-	--DEBUG_arm) 
-		ARCH="arm"
-		PACKAGE_TYPE="debug"
-		BINARIES_DIR="build-arm-debug"
-		getBoostVer
-		doPackaging
-		;;
-	--RELEASE_arm)
-		ARCH="arm"
-		PACKAGE_TYPE="release"
-		BINARIES_DIR="build-arm-release"
-		getBoostVer
-		doPackaging
-		;;
-	*)
-		echo "$RED Unrecognized packaging type, supported types are:  $BLUE [--DEBUG_x86 | --RELEASE_x86 | --DEBUG_arm | --RELEASE_arm] $NC"
-		;;
-esac
+## Check packaging architechure 
+if [[ ! "${SUPPORTED_ARCHS[*]}" =~ "$ARCH" ]];
+then 
+	echo -e "$RED Unsupported architecture type : $ARCH ! $NC"
+	echo -e "$PURPLE Supported architecture types are: $SUPPORTED_ARCHS $NC"
+	echo -e "$PURPLE Architecture argument is case sensitive! $NC"
+	exit 1
+fi
+
+## Check packaging label 
+if [ -z "$PACKAGE_VERSION" ];
+then 
+	echo -e "$RED No versioning label has been provided! $NC" 
+	exit 1
+fi
+
+## Check boost argument 
+if [ -z "$BOOST_VER" ];
+then 
+	echo -e "$PURPLE Boost version not set, setting to default 1_54_0 $NC"
+	BOOST_VER="1_54_0"
+else 
+	if [[ ! "${SUPPORTED_BOOST_VERSIONS[*]}" =~ "$BOOST_VER" ]];
+	then 
+		echo -e "$RED Unssuported boost verseion $BOOST_VER ! $NC"
+		echo -e "$PURPLE Supported boost versions: $SUPPORTED_BOOST_VERSIONS $NC"
+		exit 1
+	fi
+fi
+
+}
+
+while [ -n "$1" ];
+do
+	case $1 in 
+		-t | --type)
+			shift
+			if [ -n "$1" ]; 
+			then 
+				PACKAGE_TYPE=$1
+			else 
+				usage
+			fi
+			;;
+		-a | --arch) 
+			shift
+			if [ -n "$1" ]; 
+			then 
+				ARCH=$1
+			else 
+				usage
+			fi
+			;;
+		-v | --ver) 
+			shift
+			if [ -n "$1" ]; 
+			then 
+				PACKAGE_VERSION=$1
+			else 
+				usage
+			fi
+			;;
+		-b | --boost)
+			shift
+			if [ -n "$1" ]; 
+			then 
+				BOOST_VER=$1
+			else 
+				usage
+			fi
+			;;
+		-p | --project)
+			shift 
+			if [ -n "$1" ]; 
+			then 
+				PROJECTS+=$1
+			else 
+				usage
+			fi
+			;;
+		-h | --help)
+			usage
+			exit 0 
+			;;			
+		*)
+			usage
+			exit 1
+			;;
+	esac
+	shift
+done
+
+checkMandatoryArgs 
+doPackaging
