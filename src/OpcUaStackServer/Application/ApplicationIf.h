@@ -24,6 +24,7 @@
 #include "OpcUaStackCore/Certificate/CryptoManager.h"
 #include "OpcUaStackServer/Application/ApplicationServiceIf.h"
 #include "OpcUaStackServer/Application/ApplicationInfo.h"
+#include "OpcUaStackServer/InformationModel/InformationModel.h"
 
 namespace OpcUaStackServer
 {
@@ -79,9 +80,18 @@ namespace OpcUaStackServer
 		CryptoManager::SPtr& cryptoManager(void);
 		void applicationData(ApplicationData::SPtr& applicationData);
 		ApplicationData::SPtr& applicationData(void);
+		
+		void informationModel(InformationModel::SPtr model) {
+		  informationModel_ = model;
+		}
+
+		InformationModel::SPtr informationModel(void) {
+		  return informationModel_;
+		}	
 
 	  private:
 		ApplicationData::SPtr applicationData_;
+		InformationModel::SPtr informationModel_;
 
 	};
 
