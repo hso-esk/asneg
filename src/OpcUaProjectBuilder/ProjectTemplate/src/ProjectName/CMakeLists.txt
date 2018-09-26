@@ -54,7 +54,6 @@ add_library(
 
 target_link_libraries(
     ProjectName
-    ${pthread}
     ${OPCUASTACK_LIBRARY_CORE}
     ${OPCUASTACK_LIBRARY_CLIENT}
     ${OPCUASTACK_LIBRARY_SERVER}

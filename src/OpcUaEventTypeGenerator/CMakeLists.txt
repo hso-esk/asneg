@@ -29,6 +29,7 @@ target_link_libraries(
     OpcUaStackCore
     OpcUaStackClient
     OpcUaStackServer
+    ${CMAKE_THREAD_LIBS_INIT}
 )
 
 
