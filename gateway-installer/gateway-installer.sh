@@ -202,7 +202,7 @@ if [[ "$continue_flag" == y* ]]; then
 
 	do	
 
-		tar -pxvf $rootDir/$dataDir/opcua-server-bin-beaglebone_v$opcuaVersion.tar -C /opt/ 
+		tar -pxvf $rootDir/$dataDir/opcua-server*.tar -C /opt/ 
 
 		counter=$(expr $counter - 1)
 
@@ -227,12 +227,6 @@ if [[ "$continue_flag" == y* ]]; then
 	chown root:root /etc/init.d/asneg
 
 	chmod $permisions /etc/init.d/asneg
-
-	cp $rootDir/$dataDir/asneg-wd /etc/init.d/
-
-	chown root:root /etc/init.d/asneg-wd
-
-	chmod $permisions /etc/init.d/asneg-wd
 
 	cp $rootDir/$dataDir/crontab /etc/crontab
 

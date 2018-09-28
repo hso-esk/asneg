@@ -1,4 +1,4 @@
-#!/bin/bash 
+#!/bin/bash
 #  @author: Dovydas Girdvainis 
 #  @date  : 2018-09-10
 
@@ -17,10 +17,13 @@ BOOST_VER=""
 ARCH=""
 PACKAGE_VERSION=""
 PROJECTS=()
+GIT_USER=""
+GIT_PWD=""
 
 SUPPORTED_PACKAGE_TYPES=("DEBUG","RELEASE")
 SUPPORTED_ARCHS=("x86-amd64","arm")
 SUPPORTED_BOOST_VERSIONS=("1_54_0","1_67_0")
+SUPPORTED_PROJECTS=("PARSIFAL","AMELI")
 
 ## Color codes
 RED='\033[1;31m'
@@ -62,6 +65,9 @@ else
 	exit 1
 fi
 
+## Check if debug version 
+if [ "$ARCH,," == "debug" ];
+then
 ## Add remote debuging startup 
 touch ${PACKAGE_DIR}/startGDBServer.sh
 cat << EOF > ${PACKAGE_DIR}/startGDBServer.sh 
@@ -74,25 +80,53 @@ cd ./bin
 gdbserver :9091 OpcUaServer4 etc/OpcUaStack/OpcUaServer.xml
         
 EOF
+fi
 
 }
 
 handleProjectSpecifics () {
 
-for PROJECT in "${PROJECTS[@]}"
+# Break up array into sets seperated by whitespace
+set ' '
+PROJECTS=$PROJECTS
+
+for PROJECT in ${PROJECTS[@]}
 do
-	## Check if Project directory exists
-	if [ -e ${BINARIES_ROOT_DIR}../${PROJECT}-XMLS ]; then 
+
+	## Check if Project is supported
+	if [[ "${SUPPORTED_PROJECTS[*]}" =~ "${PROJECT^^}" ]] && [[ "${PROJECT^^}" != " " ]]; 
+	then 
+
+		echo -e "$GREEN Getting $PROJECT files from git! $NC" 		
+
 		## Copy the project specific xmls 
-		cp -rf ${BINARIES_ROOT_DIR}../${PROJECT}-XMLS ${PACKAGE_DIR}
-		
+		mkdir ${PACKAGE_DIR}${PROJECT}-XMLS 
+		cp -R ${PACKAGE_DIR}cfg ${PACKAGE_DIR}${PROJECT}-XMLS/		
+
+		## Checkout the correct xml files
+		cd ${PACKAGE_DIR}/${PROJECT}-XMLS/cfg/etc/OpcUaStack/Nodes
+		rm -rf ./sensor_xml_descriptions
+		echo -e "$BLUE Please provide git credentials: $NC"
+		git clone https://redmine.hahn-schickard.de/opc-ua-gateway/sensor_xml_descriptions.git 
+		cd ./sensor_xml_descriptions
+		git checkout ${PROJECT,,}
+
+		## Remove the git links
+		rm -rf .git*
+
+		## Remove tests
+		rm -rf ./tests 
+
+		## Return to working directory
+		cd ${PACKAGE_DIR}
+
 		## Create project specific launchers 
-		cp ${PACKAGE_DIR}opcua-run.sh ${PACKAGE_DIR}opcua-run_${PROJECT}sh
+		cp ${PACKAGE_DIR}opcua-run.sh ${PACKAGE_DIR}opcua-run_${PROJECT}.sh
 
 		## Edit project specific launcher 
 		sed -i "7s/cfg/${PROJECT}-XMLS\/cfg/" "${PACKAGE_DIR}opcua-run_${PROJECT}.sh"
 	else 
-		echo -e "$RED ${PROJECT} xml description directory not found at: ${BINARIES_ROOT_DIR}../${PROJECT}-XMLS $NC"
+		echo -e "$RED ${PROJECT} xml description directory not supported. Supported projects: ${SUPPORTED_PROJECTS} $NC"
 	fi
 done
 
@@ -139,23 +173,29 @@ packageBinaries () {
 	fi
 
 	## Copy the startup script
-	cp ${BINARIES_ROOT_DIR}../opcua-run-${ARCH}-${PACKAGE_TYPE}.sh $PACKAGE_DIR/
+	cp ${BINARIES_ROOT_DIR}../opcua-run-${ARCH}-${PACKAGE_TYPE,,}.sh $PACKAGE_DIR/
 
 	## Edit the startup script
-	sed -i "4s/asneg\/build-${ARCH}-${PACKAGE_TYPE}/.\/bin/" "${PACKAGE_DIR}opcua-run-${ARCH}-${PACKAGE_TYPE}.sh"
-	sed -i "7s/asneg\/build-${ARCH}-${PACKAGE_TYPE}/.\/bin/" "${PACKAGE_DIR}opcua-run-${ARCH}-${PACKAGE_TYPE}.sh"
-	sed -i "10s/asneg\/build-${ARCH}-${PACKAGE_TYPE}/.\/bin/" "${PACKAGE_DIR}opcua-run-${ARCH}-${PACKAGE_TYPE}.sh"
+	sed -i "4s/asneg\/build-${ARCH,,}-${PACKAGE_TYPE,,}/.\/bin/" "${PACKAGE_DIR}opcua-run-${ARCH,,}-${PACKAGE_TYPE,,}.sh"
+	sed -i "7s/asneg\/build-${ARCH,,}-${PACKAGE_TYPE,,}/.\/bin/" "${PACKAGE_DIR}opcua-run-${ARCH,,}-${PACKAGE_TYPE,,}.sh"
+	sed -i "10s/asneg\/build-${ARCH,,}-${PACKAGE_TYPE,,}/.\/bin/" "${PACKAGE_DIR}opcua-run-${ARCH,,}-${PACKAGE_TYPE,,}.sh"
 
 	## Rename the startup script
-	mv ${PACKAGE_DIR}opcua-run-${ARCH}-${PACKAGE_TYPE}.sh ${PACKAGE_DIR}opcua-run.sh
+	mv ${PACKAGE_DIR}opcua-run-${ARCH,,}-${PACKAGE_TYPE,,}.sh ${PACKAGE_DIR}opcua-run.sh
 
 	## Copy the standard xml files 
-	cp -rf ${BINARIES_ROOT_DIR}../cfg ${PACKAGE_DIR}
+	cp -R ${BINARIES_ROOT_DIR}../cfg ${PACKAGE_DIR}
 
-	if [ -n $PROJECTS ]; 
+	## Handle other projects
+	if [ -n "$PROJECTS" ]; 
 	then 
 		handleProjectSpecifics
 	fi
+
+	cd ../
+
+	## Remove git linking 
+	rm -f ${PACKAGE_DIR}/cfg/etc/OpcUaStack/Nodes/sensor_xml_descriptions/.git* 
 
 	## Tar the files 
 	tar -cvf opcua-server_v${PACKAGE_VERSION}_${ARCH}_${PACKAGE_TYPE}.tar opcua
@@ -207,8 +247,8 @@ fi
 ## Check boost argument 
 if [ -z "$BOOST_VER" ];
 then 
-	echo -e "$PURPLE Boost version not set, setting to default 1_54_0 $NC"
-	BOOST_VER="1_54_0"
+	echo -e "$PURPLE Boost version not set, setting to default 1_67_0 $NC"
+	BOOST_VER="1_67_0"
 else 
 	if [[ ! "${SUPPORTED_BOOST_VERSIONS[*]}" =~ "$BOOST_VER" ]];
 	then 
@@ -219,6 +259,12 @@ else
 fi
 
 }
+
+if [ $ARG_COUNT -lt $MIN_ARG_COUNT ]; 
+then 
+	usage
+	exit 1
+fi
 
 while [ -n "$1" ];
 do
@@ -262,7 +308,8 @@ do
 		-p | --project)
 			shift 
 			if [ -n "$1" ]; 
-			then 
+			then
+				PROJECTS+=" " 
 				PROJECTS+=$1
 			else 
 				usage

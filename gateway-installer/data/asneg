@@ -11,7 +11,7 @@
 
 
 
-NAME=OpcUaServer4
+NAME=OpcUaServer3
 DAEMON_PATH=/opt/opcua/bin
 DAEMON=$DAEMON_PATH/$NAME
 DAEMON_OPT="$DAEMON_PATH/etc/OpcUaStack/OpcUaServer.xml"
