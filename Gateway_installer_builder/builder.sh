@@ -37,7 +37,7 @@ usage () {
 doPackaging () {
 
 ## Package opcua server
-${PACKER_DIR}/../opcua_packager/packageOPCUA.sh -t $PACKAGE_TYPE -a $ARCH -v $PACKAGE_VERSION -b $BOOST_VER
+${PACKER_DIR}/../opcua_packager/packageOPCUA.sh -t $PACKAGE_TYPE -a $ARCH -v $PACKAGE_VERSION -b $BOOST_VER $PROJECTS
 ret_code=$? 
 
 if [ $ret_code -ne 0 ]; 
@@ -70,10 +70,11 @@ mv ${PACKER_DIR}/*.tar ${PACKAGE_DIR}/data
 sed -i "8s/1.4.0/${PACKAGE_VERSION}/" "${GATEWAY_INSTALLER_DIR}/gateway-installer.sh"
 
 cd $PACKAGE_DIR
-tar -cvzf ../gateway-installer-v${PACKAGE_VERSION}_${RELEASE_TYPE}.tar.gz *
+tar -cvzf ../gateway-installer-v${PACKAGE_VERSION}_${PACKAGE_TYPE,,}.tar.gz *
 
 ## Remove the package directory
 rm -rf $PACKAGE_DIR
+rm -rf ../gateway-installer
 
 }
 
@@ -119,8 +120,10 @@ do
 		-p | --project)
 			shift 
 			if [ -n "$1" ]; 
-			then 
+			then
+				PROJECTS+="-p " 
 				PROJECTS+=$1
+				PROJECTS+=" "
 			else 
 				usage
 			fi
