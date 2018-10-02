@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash 
 #  @author: Dovydas Girdvainis 
 #  @date  : 2018-09-10
 
@@ -133,7 +133,7 @@ done
 }
 
 packageBinaries () {
-	BINARIES_DIR=$(pwd) 
+	BINARIES_DIR=$(pwd)
 	echo -e "$GREEN Packaging the OPC UA server binaries from $PURPLE $BINARIES_DIR $GREEN for $PACKAGE_TYPE... $NC"
 
 	cd $PACKER_DIR
@@ -208,12 +208,12 @@ packageBinaries () {
 }
 
 doPackaging () {
-	if [ -d "${BINARIES_ROOT_DIR}$BINARIES_DIR" ]; 
+	if [ -d "${BINARIES_ROOT_DIR}build-${ARCH}-${PACKAGE_TYPE,,}" ]; 
 	then
 		cd ${BINARIES_ROOT_DIR}build-${ARCH}-"${PACKAGE_TYPE,,}"
 		packageBinaries
 	else 
-		echo -e "$RED Directory $BINARIES_DIR in $BINARIES_ROOT_DIR does not exist! $NC"
+		echo -e "$RED Directory build-${ARCH}-${PACKAGE_TYPE,,} in $BINARIES_ROOT_DIR does not exist! $NC"
 	fi
 }
 
