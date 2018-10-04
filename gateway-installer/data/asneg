@@ -101,5 +101,3 @@ case "$1" in
         log_action_msg "Usage: service asneg {start|stop|reload|force-reload|restart|status}"
         exit 1
 esac
-
-REATE USER 'opcuaUser'@'localhost' IDENTIFIED BY 'opcua_Password'; GRANT ALL PRIVILEGES ON * . * TO 'opcuaUser'@'localhost'; FLUSH PRIVILEGES; 
