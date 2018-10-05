@@ -1,11 +1,11 @@
-#!/bin/bash 
+#!/bin/bash -x
 #  @author: Dovydas Girdvainis 
 #  @date  : 2018-09-10
 
 ## Paths
-PACKER_DIR=$(pwd) 
+PACKER_DIR=$(pwd)
 BINARIES_ROOT_DIR=../../../../asneg/ 
-PACKAGE_DIR=$PACKER_DIR/opcua/
+PACKAGE_DIR=${PACKER_DIR}/opcua/
 DEPENDENCY_BASE_DIR=../../../../../../
 
 ## Private variable declarations
@@ -100,11 +100,11 @@ do
 		echo -e "$GREEN Getting $PROJECT files from git! $NC" 		
 
 		## Copy the project specific xmls 
-		mkdir ${PACKAGE_DIR}${PROJECT}-XMLS 
-		cp -R ${PACKAGE_DIR}cfg ${PACKAGE_DIR}${PROJECT}-XMLS/		
+		mkdir ${PACKAGE_DIR}/${PROJECT,,}-XMLS 
+		cp -R ${PACKAGE_DIR}/cfg ${PACKAGE_DIR}/${PROJECT,,}-XMLS/		
 
 		## Checkout the correct xml files
-		cd ${PACKAGE_DIR}/${PROJECT}-XMLS/cfg/etc/OpcUaStack/Nodes
+		cd ${PACKAGE_DIR}/${PROJECT,,}-XMLS/cfg/etc/OpcUaStack/Nodes
 		rm -rf ./sensor_xml_descriptions
 		echo -e "$BLUE Please provide git credentials: $NC"
 		git clone https://redmine.hahn-schickard.de/opc-ua-gateway/sensor_xml_descriptions.git 
@@ -121,19 +121,20 @@ do
 		cd ${PACKAGE_DIR}
 
 		## Create project specific launchers 
-		cp ${PACKAGE_DIR}opcua-run.sh ${PACKAGE_DIR}opcua-run_${PROJECT}.sh
+		cp ${PACKAGE_DIR}/opcua-run.sh ${PACKAGE_DIR}/opcua-run_${PROJECT,,}.sh
 
 		## Edit project specific launcher 
-		sed -i "7s/cfg/${PROJECT}-XMLS\/cfg/" "${PACKAGE_DIR}opcua-run_${PROJECT}.sh"
+		sed -i "7s/cfg/${PROJECT,,}-XMLS\/cfg/" "${PACKAGE_DIR}/opcua-run_${PROJECT,,}.sh"
 	else 
 		echo -e "$RED ${PROJECT} xml description directory not supported. Supported projects: ${SUPPORTED_PROJECTS} $NC"
 	fi
 done
 
+cd $PACKER_DIR
 }
 
 packageBinaries () {
-	BINARIES_DIR=$(pwd)
+	BINARIES_DIR=$(pwd) 
 	echo -e "$GREEN Packaging the OPC UA server binaries from $PURPLE $BINARIES_DIR $GREEN for $PACKAGE_TYPE... $NC"
 
 	cd $PACKER_DIR
@@ -164,6 +165,7 @@ packageBinaries () {
 		cp ${DEPENDENCY_BASE_DIR}boost-${ARCH}_${BOOST_VER}/lib/* $PACKAGE_DIR/bin
 	else 
 		echo -e "$RED Boost libraries not found at ${DEPENDENCY_BASE_DIR}boost-${ARCH}_${BOOST_VER}/lib! Try the Dependency_Installer! $NC"
+		echo -e "$PURPLE I am at $(pwd) $NC"
 		exit 1
 	fi
 	
@@ -192,8 +194,6 @@ packageBinaries () {
 		handleProjectSpecifics
 	fi
 
-	cd ../
-
 	## Remove git linking 
 	rm -f ${PACKAGE_DIR}/cfg/etc/OpcUaStack/Nodes/sensor_xml_descriptions/.git* 
 
@@ -201,19 +201,20 @@ packageBinaries () {
 	tar -cvf opcua-server_v${PACKAGE_VERSION}_${ARCH}_${PACKAGE_TYPE}.tar opcua
 
 	## Remove the package directory 
-	rm -rf ${PACKAGE_DIR}
+	#rm -rf ${PACKAGE_DIR}
 
 	echo -e "$GREEN Packaging complete! $NC"
 	exit 0
 }
 
 doPackaging () {
-	if [ -d "${BINARIES_ROOT_DIR}build-${ARCH}-${PACKAGE_TYPE,,}" ]; 
+	if [ -d "${BINARIES_ROOT_DIR}$BINARIES_DIR" ]; 
 	then
 		cd ${BINARIES_ROOT_DIR}build-${ARCH}-"${PACKAGE_TYPE,,}"
 		packageBinaries
 	else 
-		echo -e "$RED Directory build-${ARCH}-${PACKAGE_TYPE,,} in $BINARIES_ROOT_DIR does not exist! $NC"
+		echo -e "$RED Directory $BINARIES_DIR in $BINARIES_ROOT_DIR does not exist! $NC"
+		exit 1
 	fi
 }
 
