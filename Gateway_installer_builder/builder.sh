@@ -37,13 +37,17 @@ usage () {
 doPackaging () {
 
 ## Package opcua server
-${PACKER_DIR}/../opcua_packager/packageOPCUA.sh -t $PACKAGE_TYPE -a $ARCH -v $PACKAGE_VERSION -b $BOOST_VER $PROJECTS
+cd ${PACKER_DIR}/../opcua_packager/
+./packageOPCUA.sh -t $PACKAGE_TYPE -a $ARCH -v $PACKAGE_VERSION -b $BOOST_VER $PROJECTS
 ret_code=$? 
 
 if [ $ret_code -ne 0 ]; 
 then 
 	echo -e "$RED Failed executind OPC UA packager. $NC"
 	exit 1
+else
+	cp ./*.tar $PACKER_DIR
+	cd $PACKER_DIR
 fi
 
 if [ ! -d "$PACKAGE_DIR" ]; 
