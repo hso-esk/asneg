@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash 
 #  @author: Dovydas Girdvainis 
 #  @date  : 2018-09-10
 
@@ -137,6 +137,11 @@ packageBinaries () {
 	BINARIES_DIR=$(pwd) 
 	echo -e "$GREEN Packaging the OPC UA server binaries from $PURPLE $BINARIES_DIR $GREEN for $PACKAGE_TYPE... $NC"
 
+	if [ ! -d "$BINARIES_DIR" ];
+	then 
+		echo -e "$RED FAILURE! No boost binaries detected at $BINARIES_DIR ! $NC"
+	fi
+
 	cd $PACKER_DIR
  
 	## Check if directory exists
@@ -197,20 +202,22 @@ packageBinaries () {
 	## Remove git linking 
 	rm -f ${PACKAGE_DIR}/cfg/etc/OpcUaStack/Nodes/sensor_xml_descriptions/.git* 
 
+	cd $PACKER_DIR	
+
 	## Tar the files 
 	tar -cvf opcua-server_v${PACKAGE_VERSION}_${ARCH}_${PACKAGE_TYPE}.tar opcua
 
 	## Remove the package directory 
-	#rm -rf ${PACKAGE_DIR}
+	rm -rf ${PACKAGE_DIR}
 
 	echo -e "$GREEN Packaging complete! $NC"
 	exit 0
 }
 
 doPackaging () {
-	if [ -d "${BINARIES_ROOT_DIR}$BINARIES_DIR" ]; 
+	if [ -d "${BINARIES_ROOT_DIR}build-${ARCH,,}-${PACKAGE_TYPE,,}" ]; 
 	then
-		cd ${BINARIES_ROOT_DIR}build-${ARCH}-"${PACKAGE_TYPE,,}"
+		cd ${BINARIES_ROOT_DIR}build-${ARCH,,}-"${PACKAGE_TYPE,,}"
 		packageBinaries
 	else 
 		echo -e "$RED Directory $BINARIES_DIR in $BINARIES_ROOT_DIR does not exist! $NC"
