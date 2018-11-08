@@ -34,6 +34,10 @@
 #include "OpcUaStackCore/ServiceSetApplication/CreateNodeInstanceResponse.h"
 #include "OpcUaStackCore/ServiceSetApplication/DelNodeInstanceRequest.h"
 #include "OpcUaStackCore/ServiceSetApplication/DelNodeInstanceResponse.h"
+#include "OpcUaStackCore/ServiceSetApplication/FireEventRequest.h"
+#include "OpcUaStackCore/ServiceSetApplication/FireEventResponse.h"
+#include "OpcUaStackCore/ServiceSetApplication/BrowsePathToNodeIdRequest.h"
+#include "OpcUaStackCore/ServiceSetApplication/BrowsePathToNodeIdResponse.h"
 
 namespace OpcUaStackCore
 {
@@ -86,6 +90,20 @@ namespace OpcUaStackCore
 		OpcUaId_DelNodeInstanceRequest_Encoding_DefaultBinary,
 		OpcUaId_DelNodeInstanceResponse_Encoding_DefaultBinary
 	> ServiceTransactionDelNodeInstance;
+
+	typedef ServiceTransactionTemplate<
+		FireEventRequest,
+		FireEventResponse,
+		OpcUaId_FireEventRequest_Encoding_DefaultBinary,
+		OpcUaId_FireEventResponse_Encoding_DefaultBinary
+	> ServiceTransactionFireEvent;
+
+	typedef ServiceTransactionTemplate<
+		BrowsePathToNodeIdRequest,
+		BrowsePathToNodeIdResponse,
+		OpcUaId_BrowsePathToNodeIdRequest_Encoding_DefaultBinary,
+		OpcUaId_BrowsePathToNodeIdResponse_Encoding_DefaultBinary
+	> ServiceTransactionBrowsePathToNodeId;
 
 }
 

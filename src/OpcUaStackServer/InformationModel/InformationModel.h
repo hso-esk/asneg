@@ -19,9 +19,11 @@
 #define __OpcUaStackServer_InformationModel_h__
 
 #include <boost/thread/mutex.hpp>
+#include <OpcUaStackServer/InformationModel/EventHandlerMap.h>
 #include "OpcUaStackCore/Base/os.h"
 #include "OpcUaStackCore/Base/ObjectPool.h"
 #include "OpcUaStackCore/BuildInTypes/OpcUaAttributeId.h"
+#include "OpcUaStackCore/EventType/EventBase.h"
 #include "OpcUaStackServer/AddressSpaceModel/BaseNodeClass.h"
 #include "OpcUaStackServer/InformationModel/MethodMap.h"
 #include <map>
@@ -52,6 +54,8 @@ namespace OpcUaStackServer
 
 		InformationModelMap& informationModelMap(void);
 		MethodMap& methodMap(void);
+		EventHandlerMap& eventHandlerMap(void);
+		boost::mutex& mutex(void);
 
 		void checkForwardReferences(void);
 
@@ -69,6 +73,7 @@ namespace OpcUaStackServer
 		boost::mutex mutex_;
 		InformationModelMap informationModelMap_;
 		MethodMap methodMap_;
+		EventHandlerMap eventHandlerMap_;
 
 	};
 

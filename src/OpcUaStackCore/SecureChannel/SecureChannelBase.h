@@ -1,5 +1,5 @@
 /*
-   Copyright 2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2018 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -19,7 +19,8 @@
 #ifndef __OpUaStackCore_SecureChannelBase_h__
 #define __OpUaStackCore_SecureChannelBase_h__
 
-#include "OpcUaStackCore/SecureChannel/SecureChannel.h"
+#include "OpcUaStackCore/Base/os.h"
+#include "OpcUaStackCore/SecureChannel/SecureChannelCrypto.h"
 #include "OpcUaStackCore/SecureChannel/HelloMessage.h"
 #include "OpcUaStackCore/SecureChannel/AcknowledgeMessage.h"
 #include "OpcUaStackCore/SecureChannel/SecurityHeader.h"
@@ -34,6 +35,7 @@ namespace OpcUaStackCore
 {
 
 	class DLLEXPORT SecureChannelBase
+	: public SecureChannelCrypto
 	{
 	  public:
 		typedef enum
@@ -60,9 +62,10 @@ namespace OpcUaStackCore
 			SecureChannel* secureChannel,
 			OpenSecureChannelRequest& openSecureChannelRequest
 		);
+		void asyncWriteOpenSecureChannelResponse(SecureChannel* secureChannel);
 		void asyncWriteOpenSecureChannelResponse(
 			SecureChannel* secureChannel,
-			OpenSecureChannelResponse& openSecureChannelResponse
+			OpenSecureChannelResponse::SPtr& openSecureChannelResponse
 		);
 		void asyncWriteCloseSecureChannelRequest(
 			SecureChannel* secureChannel
@@ -112,6 +115,7 @@ namespace OpcUaStackCore
 		void asyncRead(SecureChannel* secureChannel);
 
 	  private:
+
 		void asyncReadHello(SecureChannel* secureChannel);
 		void asyncReadAcknowledge(SecureChannel* secureChannel);
 		void asyncReadOpenSecureChannelRequest(SecureChannel* secureChannel);
@@ -140,13 +144,14 @@ namespace OpcUaStackCore
 		void handleWriteCloseSecureChannelRequestComplete(const boost::system::error_code& error, SecureChannel* secureChannel);
 		void handleWriteMessageRequestComplete(const boost::system::error_code& error, SecureChannel* secureChannel);
 		void handleWriteMessageResponseComplete(const boost::system::error_code& error, SecureChannel* secureChannel);
+		void handleWriteComplete(SecureChannel* secureChannel);
 
 
 		void closeChannel(SecureChannel* secureChannel, bool close = false);
 		void consumeAll(boost::asio::streambuf& streambuf);
 
+
 		SecureChannelType secureChannelType_;
-		uint32_t asyncWriteCount_;
 	};
 
 }

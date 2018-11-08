@@ -1,5 +1,5 @@
 /*
-   Copyright 2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2017 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -64,6 +64,16 @@ namespace OpcUaStackCore
 			return BadStatusCodeUnknown;
 		}
 		return it->second;
+	}
+
+	void
+	OpcUaStatusCodeMap::getStatusCodeVec(std::vector<std::string>& statusCodeVec)
+	{
+		initial();
+		StatusCodeMap::iterator it;
+		for (it = shortStatusCodeMap_.begin(); it !=  shortStatusCodeMap_.end(); it++) {
+			statusCodeVec.push_back(it->second);
+		}
 	}
 
 	void 
@@ -298,5 +308,7 @@ namespace OpcUaStackCore
 		insert(BadWouldBlock,									"BadWouldBlock",								"Non blocking behaviour is required and the operation would block");
 		insert(BadSyntaxError,									"BadSyntaxError",								"A value had an invalid syntax");
 		insert(BadMaxConnectionsReached,						"BadMaxConnectionsReached",						"The operation could not be finished because all available connections are in use");
+
+		insert(BadSignatureInvalid,								"BadSignatureInvalid",							"signature is missing or invalid");
 	}
 };

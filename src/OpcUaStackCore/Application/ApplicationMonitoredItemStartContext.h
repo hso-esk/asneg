@@ -1,5 +1,5 @@
 /*
-   Copyright 2016 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2016-2018 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -18,7 +18,9 @@
 #ifndef __OpcUaStackCore_ApplicationMonitoredItemStartContext_h__
 #define __OpcUaStackCore_ApplicationMonitoredItemStartContext_h__
 
+#include "OpcUaStackCore/Base/os.h"
 #include "OpcUaStackCore/Base/BaseClass.h"
+#include "OpcUaStackCore/Base/UserContext.h"
 #include "OpcUaStackCore/BuildInTypes/OpcUaNodeId.h"
 #include "OpcUaStackCore/ServiceSetApplication/NodeReference.h"
 
@@ -26,13 +28,17 @@
 namespace OpcUaStackCore
 {
 
-	class ApplicationMonitoredItemStartContext
+	class DLLEXPORT ApplicationMonitoredItemStartContext
 	{
 	  public:
+		ApplicationMonitoredItemStartContext(void);
+		~ApplicationMonitoredItemStartContext(void);
+
 		BaseClass::SPtr applicationContext_;	// IN - application context from register call
 		OpcUaNodeId nodeId_;					// IN - node id to be monitored
 		bool firstMonitoredItem_;				// IN - the first monitored item has been opened
 		NodeReference::SPtr nodeReference_;		// IN - reference to base node class
+		UserContext::SPtr userContext_;			// in - user context
 	};
 
 }

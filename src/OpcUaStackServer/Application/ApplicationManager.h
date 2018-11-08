@@ -1,5 +1,5 @@
 /*
-   Copyright 2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2018 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -20,7 +20,10 @@
 
 #include "OpcUaStackCore/Base/os.h"
 #include "OpcUaStackCore/Component/Component.h"
+#include "OpcUaStackCore/Certificate/ApplicationCertificate.h"
+#include "OpcUaStackCore/Certificate/CryptoManager.h"
 #include "OpcUaStackServer/Application/ApplicationIf.h"
+#include "OpcUaStackServer/Application/ReloadIf.h"
 #include "OpcUaStackServer/Application/Application.h"
 
 using namespace OpcUaStackCore;
@@ -34,12 +37,20 @@ namespace OpcUaStackServer
 		ApplicationManager(void);
 		~ApplicationManager(void);
 
+		void applicationCertificate(ApplicationCertificate::SPtr& applicationCertificate);
+		void cryptoManager(CryptoManager::SPtr& cryptoManager);
+
 		bool registerApplication(
 			const std::string& applicationName,
-			ApplicationIf* applicationIf
+			ApplicationIf* applicationIf,
+			ReloadIf* reloadIf
 		);
-		bool deregisterApplication(const std::string& applicationName);
-		void serviceComponent(Component* serviceComponent);
+		bool deregisterApplication(
+			const std::string& applicationName
+		);
+		void serviceComponent(
+			Component* serviceComponent
+		);
 
 		bool startup(void);
 		bool shutdown(void);
@@ -47,6 +58,9 @@ namespace OpcUaStackServer
 	  private:
 		Application::Map applicationMap_;
 		Component* serviceComponent_;
+
+		ApplicationCertificate::SPtr applicationCertificate_;
+		CryptoManager::SPtr cryptoManager_;
 	};
 
 }

@@ -1,5 +1,5 @@
 /*
-   Copyright 2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2017 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -121,9 +121,13 @@ namespace OpcUaStackCore
     {
 	  public:
 
+		// --------------------------------------------------------------------
+		// --------------------------------------------------------------------
 		//
 		// Boolean
 		//
+		// --------------------------------------------------------------------
+		// --------------------------------------------------------------------
 		static void opcUaBinaryEncode(std::ostream& os, const OpcUaBoolean& value);
 		static void opcUaBinaryDecode(std::istream& is, OpcUaBoolean& value);
 		static bool encode(boost::property_tree::ptree& pt, const OpcUaBoolean& value);
@@ -137,7 +141,6 @@ namespace OpcUaStackCore
 		static bool decode(boost::property_tree::ptree& pt, OpcUaBooleanArray& value);
 		static bool encode(boost::property_tree::ptree& pt, const OpcUaBooleanArray::SPtr& value);
 		static bool decode(boost::property_tree::ptree& pt, OpcUaBooleanArray::SPtr& value);
-
 
 		//
 		// SByte

@@ -1,5 +1,5 @@
 /*
-   Copyright 2015-2017 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2018 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -17,14 +17,16 @@
 
 #include "OpcUaStackCore/Base/Log.h"
 #include "OpcUaStackCore/ServiceSet/AttributeServiceTransaction.h"
+#include "OpcUaStackCore/Application/ApplicationAutorizationContext.h"
 #include "OpcUaStackCore/Application/ApplicationReadContext.h"
 #include "OpcUaStackCore/Application/ApplicationHReadContext.h"
+#include "OpcUaStackCore/Application/ApplicationHReadEventContext.h"
 #include "OpcUaStackCore/Application/ApplicationWriteContext.h"
 #include "OpcUaStackCore/Application/ApplicationHWriteContext.h"
 #include "OpcUaStackCore/BuildInTypes/OpcUaIdentifier.h"
-#include "OpcUaStackCore/ServiceSet/ReadRawModifiedDetails.h"
-#include "OpcUaStackCore/ServiceSet/UpdateStructureDataDetails.h"
 #include "OpcUaStackCore/ServiceSet/HistoryData.h"
+#include "OpcUaStackCore/ServiceSet/HistoryEvent.h"
+#include "OpcUaStackCore/ServiceSet/ReadEventDetails.h"
 #include "OpcUaStackServer/ServiceSet/AttributeService.h"
 #include "OpcUaStackServer/AddressSpaceModel/AttributeAccess.h"
 
@@ -76,6 +78,8 @@ namespace OpcUaStackServer
 	void 
 	AttributeService::receiveReadRequest(ServiceTransaction::SPtr serviceTransaction)
 	{
+		OpcUaStatusCode statusCode;
+
 		ServiceTransactionRead::SPtr trx = boost::static_pointer_cast<ServiceTransactionRead>(serviceTransaction);
 
 		ReadRequest::SPtr readRequest = trx->request();
@@ -119,6 +123,13 @@ namespace OpcUaStackServer
 				continue;
 			}
 
+			// autorization
+			statusCode = forwardAuthorizationRead(serviceTransaction->userContext(), readValueId);
+			if (statusCode != Success) {
+				dataValue->statusCode(statusCode);
+				continue;
+			}
+
 			// find node class instance for the node
 			BaseNodeClass::SPtr baseNodeClass = informationModel_->find(readValueId->nodeId());
 			if (baseNodeClass.get() == nullptr) {
@@ -131,8 +142,15 @@ namespace OpcUaStackServer
 				continue;
 			}
 
+			boost::shared_lock<boost::shared_mutex> lock(baseNodeClass->mutex());
+
 			// forward read request
-			forwardRead(baseNodeClass, readRequest, readValueId);
+			forwardRead(
+				serviceTransaction->userContext(),
+				baseNodeClass,
+				readRequest,
+				readValueId
+			);
 
 			// determine the attribute to be read
 			Attribute* attribute = baseNodeClass->attribute((AttributeId)readValueId->attributeId());
@@ -184,8 +202,30 @@ namespace OpcUaStackServer
 		trx->componentSession()->send(serviceTransaction);
 	}
 
+	OpcUaStatusCode
+	AttributeService::forwardAuthorizationRead(UserContext::SPtr& userContext, ReadValueId::SPtr& readValueId)
+	{
+		if (forwardGlobalSync().get() == nullptr) return Success;
+		if (!forwardGlobalSync()->autorizationService().isCallback()) return Success;
+
+		ApplicationAutorizationContext context;
+		context.userContext_ = userContext;
+		context.serviceOperation_ = ServiceOperation::Read;
+		context.nodeId_ = *readValueId->nodeId();
+		context.attributeId_ = readValueId->attributeId();
+
+		forwardGlobalSync()->autorizationService().callback()(&context);
+
+		return context.statusCode_;
+	}
+
 	void
-	AttributeService::forwardRead(BaseNodeClass::SPtr baseNodeClass, ReadRequest::SPtr readRequest, ReadValueId::SPtr readValueId)
+	AttributeService::forwardRead(
+		UserContext::SPtr& userContext,
+		BaseNodeClass::SPtr baseNodeClass,
+		ReadRequest::SPtr readRequest,
+		ReadValueId::SPtr readValueId
+	)
 	{
 		if ((AttributeId)readValueId->attributeId() != AttributeId_Value) return;
 
@@ -198,6 +238,7 @@ namespace OpcUaStackServer
 		applicationReadContext.attributeId_ = readValueId->attributeId();
 		applicationReadContext.statusCode_ = Success;
 		applicationReadContext.applicationContext_ = forwardNodeSync->readService().applicationContext();
+		applicationReadContext.userContext_ = userContext;
 
 		forwardNodeSync->readService().callback()(&applicationReadContext);
 
@@ -215,6 +256,8 @@ namespace OpcUaStackServer
 	void 
 	AttributeService::receiveWriteRequest(ServiceTransaction::SPtr serviceTransaction)
 	{
+		OpcUaStatusCode statusCode;
+
 		ServiceTransactionWrite::SPtr trx = boost::static_pointer_cast<ServiceTransactionWrite>(serviceTransaction);
 		WriteRequest::SPtr writeRequest = trx->request();
 		WriteResponse::SPtr writeResponse = trx->response();
@@ -249,6 +292,13 @@ namespace OpcUaStackServer
 				continue;
 			}
 
+			// autorization
+			statusCode = forwardAuthorizationWrite(serviceTransaction->userContext(), writeValue);
+			if (statusCode != Success) {
+				writeResponse->results()->set(idx, statusCode);
+				continue;
+			}
+
 			BaseNodeClass::SPtr baseNodeClass = informationModel_->find(writeValue->nodeId());
 			if (baseNodeClass.get() == nullptr) {
 				writeResponse->results()->set(idx, BadNodeIdUnknown);
@@ -272,7 +322,14 @@ namespace OpcUaStackServer
 				continue;
 			}
 
-			OpcUaStatusCode statusCode = forwardWrite(baseNodeClass, writeRequest, writeValue);
+			boost::unique_lock<boost::shared_mutex> lock(baseNodeClass->mutex());
+
+			OpcUaStatusCode statusCode = forwardWrite(
+				serviceTransaction->userContext(),
+				baseNodeClass,
+				writeRequest,
+				writeValue
+			);
 			if (statusCode != Success) {
 				writeResponse->results()->set(idx, statusCode);
 				Log(Debug, "write value error, because invalid status code from library")
@@ -310,7 +367,29 @@ namespace OpcUaStackServer
 	}
 
 	OpcUaStatusCode
-	AttributeService::forwardWrite(BaseNodeClass::SPtr baseNodeClass, WriteRequest::SPtr writeRequest, WriteValue::SPtr writeValue)
+	AttributeService::forwardAuthorizationWrite(UserContext::SPtr& userContext, WriteValue::SPtr& writeValue)
+	{
+		if (forwardGlobalSync().get() == nullptr) return Success;
+		if (!forwardGlobalSync()->autorizationService().isCallback()) return Success;
+
+		ApplicationAutorizationContext context;
+		context.userContext_ = userContext;
+		context.serviceOperation_ = ServiceOperation::Write;
+		context.nodeId_ = *writeValue->nodeId();
+		context.attributeId_ = writeValue->attributeId();
+
+		forwardGlobalSync()->autorizationService().callback()(&context);
+
+		return context.statusCode_;
+	}
+
+	OpcUaStatusCode
+	AttributeService::forwardWrite(
+		UserContext::SPtr& userContext,
+		BaseNodeClass::SPtr baseNodeClass,
+		WriteRequest::SPtr writeRequest,
+		WriteValue::SPtr writeValue
+	)
 	{
 		if ((AttributeId)writeValue->attributeId() != AttributeId_Value) return Success;
 
@@ -324,6 +403,7 @@ namespace OpcUaStackServer
 		writeValue->dataValue().copyTo(applicationWriteContext.dataValue_);
 		applicationWriteContext.statusCode_ = Success;
 		applicationWriteContext.applicationContext_ = forwardNodeSync->writeService().applicationContext();
+		applicationWriteContext.userContext_ = userContext;
 
 		forwardNodeSync->writeService().callback()(&applicationWriteContext);
 
@@ -340,6 +420,8 @@ namespace OpcUaStackServer
 	void 
 	AttributeService::receiveHistoryReadRequest(ServiceTransaction::SPtr serviceTransaction)
 	{
+		OpcUaStatusCode statusCode;
+
 		ServiceTransactionHistoryRead::SPtr trx = boost::static_pointer_cast<ServiceTransactionHistoryRead>(serviceTransaction);
 		HistoryReadRequest::SPtr readRequest = trx->request();
 		HistoryReadResponse::SPtr readResponse = trx->response();
@@ -370,11 +452,42 @@ namespace OpcUaStackServer
 		// check type of history read details
 		OpcUaNodeId parameterTypeId;
 		parameterTypeId.set((OpcUaUInt32)OpcUaId_ReadRawModifiedDetails_Encoding_DefaultBinary);
-		if (parameterTypeId != readRequest->historyReadDetails()->parameterTypeId()) {
-			trx->statusCode(BadServiceUnsupported);
-			trx->componentSession()->send(serviceTransaction);
+		if (parameterTypeId == readRequest->historyReadDetails()->parameterTypeId()) {
+			receiveHistoryReadRawRequest(
+				serviceTransaction,
+				trx,
+				readRequest,
+				readResponse
+			);
 			return;
 		}
+
+		// check type of history event
+		parameterTypeId.set((OpcUaUInt32)OpcUaId_ReadEventDetails_Encoding_DefaultBinary);
+		if (parameterTypeId == readRequest->historyReadDetails()->parameterTypeId()) {
+			receiveHistoryReadEventRequest(
+				serviceTransaction,
+				trx,
+				readRequest,
+				readResponse
+			);
+			return;
+		}
+
+		trx->statusCode(BadServiceUnsupported);
+		trx->componentSession()->send(serviceTransaction);
+	}
+
+	void
+	AttributeService::receiveHistoryReadRawRequest(
+		ServiceTransaction::SPtr& serviceTransaction,
+		ServiceTransactionHistoryRead::SPtr& trx,
+		HistoryReadRequest::SPtr readRequest,
+		HistoryReadResponse::SPtr readResponse
+	)
+	{
+		OpcUaStatusCode statusCode;
+
 		ReadRawModifiedDetails::SPtr readDetails;
 		readDetails = readRequest->historyReadDetails()->parameter<ReadRawModifiedDetails>();
 		uint32_t numValuesPerNode = readDetails->numValuesPerNode();
@@ -395,6 +508,13 @@ namespace OpcUaStackServer
 				continue;
 			}
 
+			// autorization
+			statusCode = forwardAuthorizationHistoricalRead(serviceTransaction->userContext(), readValueId);
+			if (statusCode != Success) {
+				readResult->statusCode(statusCode);
+				continue;
+			}
+
 			// find node class instance for the node
 			BaseNodeClass::SPtr baseNodeClass = informationModel_->find(readValueId->nodeId());
 			if (baseNodeClass.get() == nullptr) {
@@ -410,7 +530,7 @@ namespace OpcUaStackServer
 			ForwardNodeSync::SPtr forwardNodeSync = baseNodeClass->forwardNodeSync();
 			if (forwardNodeSync.get() == nullptr) {
 				readResult->statusCode(BadServiceUnsupported);
-				Log(Debug, "history read value error, because service not supported")
+				Log(Debug, "history read value error, because service not supported (1)")
 					.parameter("Trx", serviceTransaction->transactionId())
 					.parameter("Idx", idx)
 					.parameter("Node", *readValueId->nodeId());
@@ -418,7 +538,7 @@ namespace OpcUaStackServer
 			}
 			if (!forwardNodeSync->readHService().isCallback()) {
 				readResult->statusCode(BadServiceUnsupported);
-				Log(Debug, "history read value error, because service not supported")
+				Log(Debug, "history read value error, because service not supported (2)")
 					.parameter("Trx", serviceTransaction->transactionId())
 					.parameter("Idx", idx)
 					.parameter("Node", *readValueId->nodeId());
@@ -442,6 +562,7 @@ namespace OpcUaStackServer
 			applicationReadContext.releaseContinuationPoints_ = readRequest->releaseContinuationPoints();
 			applicationReadContext.continousPoint_ = continousPoint;
 			applicationReadContext.numValuesPerNode_ = numValuesPerNode;
+			applicationReadContext.userContext_ = serviceTransaction->userContext();
 
 			forwardNodeSync->readHService().callback()(&applicationReadContext);
 
@@ -453,6 +574,7 @@ namespace OpcUaStackServer
 			}
 
 			if (applicationReadContext.statusCode_ != Success) {
+				readResult->statusCode(BadInternalError);
 				Log(Debug, "history read value error, because service process failed")
 					.parameter("Trx", serviceTransaction->transactionId())
 					.parameter("Idx", idx)
@@ -472,6 +594,140 @@ namespace OpcUaStackServer
 		trx->componentSession()->send(serviceTransaction);
 	}
 
+	void
+	AttributeService::receiveHistoryReadEventRequest(
+		ServiceTransaction::SPtr& serviceTransaction,
+		ServiceTransactionHistoryRead::SPtr& trx,
+		HistoryReadRequest::SPtr readRequest,
+		HistoryReadResponse::SPtr readResponse
+	)
+	{
+		OpcUaStatusCode statusCode;
+
+		ReadEventDetails::SPtr readDetails;
+		readDetails = readRequest->historyReadDetails()->parameter<ReadEventDetails>();
+		uint32_t numValuesPerNode = readDetails->numValuesPerNode();
+
+		// read values
+		readResponse->results()->resize(readRequest->nodesToRead()->size());
+		for (uint32_t idx = 0; idx < readRequest->nodesToRead()->size(); idx++) {
+			HistoryReadResult::SPtr readResult = constructSPtr<HistoryReadResult>();
+			readResponse->results()->set(idx, readResult);
+
+			// determine node information
+			HistoryReadValueId::SPtr readValueId;
+			if (!readRequest->nodesToRead()->get(idx, readValueId)) {
+				readResult->statusCode(BadNodeIdInvalid);
+				Log(Debug, "history read event error, because node request parameter invalid")
+					.parameter("Trx", serviceTransaction->transactionId())
+					.parameter("Idx", idx);
+				continue;
+			}
+
+			// autorization
+			statusCode = forwardAuthorizationHistoricalRead(serviceTransaction->userContext(), readValueId);
+			if (statusCode != Success) {
+				readResult->statusCode(statusCode);
+				continue;
+			}
+
+			// find node class instance for the node
+			BaseNodeClass::SPtr baseNodeClass = informationModel_->find(readValueId->nodeId());
+			if (baseNodeClass.get() == nullptr) {
+				readResult->statusCode(BadNodeIdUnknown);
+				Log(Debug, "history read event error, because node not exist in information model")
+					.parameter("Trx", serviceTransaction->transactionId())
+					.parameter("Idx", idx)
+					.parameter("Node", *readValueId->nodeId());
+				continue;
+			}
+
+			// check if forward callback exists
+			ForwardNodeSync::SPtr forwardNodeSync = baseNodeClass->forwardNodeSync();
+			if (forwardNodeSync.get() == nullptr) {
+				readResult->statusCode(BadServiceUnsupported);
+				Log(Debug, "history read event error, because service not supported")
+					.parameter("Trx", serviceTransaction->transactionId())
+					.parameter("Idx", idx)
+					.parameter("Node", *readValueId->nodeId());
+				continue;
+			}
+			if (!forwardNodeSync->readHEService().isCallback()) {
+				readResult->statusCode(BadServiceUnsupported);
+				Log(Debug, "history read event error, because service not supported")
+					.parameter("Trx", serviceTransaction->transactionId())
+					.parameter("Idx", idx)
+					.parameter("Node", *readValueId->nodeId());
+				continue;
+			}
+
+			// get continous point
+			std::string continousPoint = "";
+			if (readValueId->continuationPoint().exist()) {
+				continousPoint = readValueId->continuationPoint().toString();
+			}
+
+			// call forward calbacks
+			ApplicationHReadEventContext applicationReadContext;
+			applicationReadContext.nodeId_ = *readValueId->nodeId();
+			applicationReadContext.startTime_ = readDetails->startTime().dateTime();
+			applicationReadContext.stopTime_ = readDetails->endTime().dateTime();
+			applicationReadContext.timestampsToReturn_ = readRequest->timestampsToReturn();
+			applicationReadContext.filter_ = readDetails->filter();
+			applicationReadContext.statusCode_ = Success;
+			applicationReadContext.applicationContext_ = forwardNodeSync->readHEService().applicationContext();
+			applicationReadContext.releaseContinuationPoints_ = readRequest->releaseContinuationPoints();
+			applicationReadContext.continousPoint_ = continousPoint;
+			applicationReadContext.numValuesPerNode_ = numValuesPerNode;
+			applicationReadContext.userContext_ = serviceTransaction->userContext();
+
+			forwardNodeSync->readHEService().callback()(&applicationReadContext);
+
+			// check response
+			readResult->statusCode(applicationReadContext.statusCode_);
+
+			if (!applicationReadContext.continousPoint_.empty()) {
+				readResult->continuationPoint().value(applicationReadContext.continousPoint_);
+			}
+
+			if (applicationReadContext.statusCode_ != Success) {
+				readResult->statusCode(BadInternalError);
+				Log(Debug, "history read event error, because service process failed")
+					.parameter("Trx", serviceTransaction->transactionId())
+					.parameter("Idx", idx)
+					.parameter("Node", *readValueId->nodeId())
+					.parameter("StatusCode", OpcUaStatusCodeMap::shortString(applicationReadContext.statusCode_));
+				continue;
+			}
+
+			// process response
+			HistoryEvent::SPtr historyEvent;
+			readResult->historyData()->parameterTypeId().set((OpcUaUInt32)OpcUaId_HistoryEvent_Encoding_DefaultBinary);
+			historyEvent = readResult->historyData()->parameter<HistoryEvent>();
+			historyEvent->events(applicationReadContext.eventFieldArray_);
+		}
+
+		trx->statusCode(Success);
+		trx->componentSession()->send(serviceTransaction);
+	}
+
+	OpcUaStatusCode
+	AttributeService::forwardAuthorizationHistoricalRead(UserContext::SPtr& userContext, HistoryReadValueId::SPtr& readValueId)
+	{
+		if (forwardGlobalSync().get() == nullptr) return Success;
+		if (!forwardGlobalSync()->autorizationService().isCallback()) return Success;
+
+		ApplicationAutorizationContext context;
+		context.userContext_ = userContext;
+		context.serviceOperation_ = ServiceOperation::HRead;
+		context.nodeId_ = *readValueId->nodeId();
+		context.attributeId_ = AttributeId_Value;
+
+		forwardGlobalSync()->autorizationService().callback()(&context);
+
+		return context.statusCode_;
+	}
+
 	// ------------------------------------------------------------------------
 	// ------------------------------------------------------------------------
 	//
@@ -482,6 +738,8 @@ namespace OpcUaStackServer
 	void 
 	AttributeService::receiveHistoryUpdateRequest(ServiceTransaction::SPtr serviceTransaction)
 	{
+		OpcUaStatusCode statusCode;
+
 		ServiceTransactionHistoryUpdate::SPtr trx = boost::static_pointer_cast<ServiceTransactionHistoryUpdate>(serviceTransaction);
 		HistoryUpdateRequest::SPtr updateRequest = trx->request();
 		HistoryUpdateResponse::SPtr updateResponse = trx->response();
@@ -525,6 +783,13 @@ namespace OpcUaStackServer
 			}
 			UpdateStructureDataDetails::SPtr dataDetails;
 			dataDetails = extensibleParameter->parameter<UpdateStructureDataDetails>();
+
+			// autorization
+			statusCode = forwardAuthorizationHistoricalWrite(serviceTransaction->userContext(), dataDetails);
+			if (statusCode != Success) {
+				writeResult->statusCode(statusCode);
+				continue;
+			}
 
 			// check operation type
 			if (dataDetails->performInsertReplace() != PerformUpdateEnumeration_Insert) {
@@ -579,6 +844,7 @@ namespace OpcUaStackServer
 			applicationWriteContext.dataValueArray_ = dataDetails->updateValue();
 			applicationWriteContext.statusCode_ = Success;
 			applicationWriteContext.applicationContext_ = forwardNodeSync->writeHService().applicationContext();
+			applicationWriteContext.userContext_ = serviceTransaction->userContext();
 
 			forwardNodeSync->writeHService().callback()(&applicationWriteContext);
 			writeResult->statusCode(applicationWriteContext.statusCode_);
@@ -586,6 +852,23 @@ namespace OpcUaStackServer
 
 		serviceTransaction->statusCode(Success);
 		serviceTransaction->componentSession()->send(serviceTransaction);
+	}
+
+	OpcUaStatusCode
+	AttributeService::forwardAuthorizationHistoricalWrite(UserContext::SPtr& userContext, UpdateStructureDataDetails::SPtr& updateStructureDataDetails)
+	{
+		if (forwardGlobalSync().get() == nullptr) return Success;
+		if (!forwardGlobalSync()->autorizationService().isCallback()) return Success;
+
+		ApplicationAutorizationContext context;
+		context.userContext_ = userContext;
+		context.serviceOperation_ = ServiceOperation::HWrite;
+		context.nodeId_ = updateStructureDataDetails->nodeId();
+		context.attributeId_ = AttributeId_Value;
+
+		forwardGlobalSync()->autorizationService().callback()(&context);
+
+		return context.statusCode_;
 	}
 
 }

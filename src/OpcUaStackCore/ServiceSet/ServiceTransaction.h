@@ -1,5 +1,5 @@
 /*
-   Copyright 2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2018 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -21,6 +21,7 @@
 #include <boost/thread/mutex.hpp>
 #include "OpcUaStackCore/Base/os.h"
 #include "OpcUaStackCore/Base/ConditionBool.h"
+#include "OpcUaStackCore/Base/UserContext.h"
 #include "OpcUaStackCore/Component/Component.h"
 #include "OpcUaStackCore/SecureChannel/RequestHeader.h"
 #include "OpcUaStackCore/SecureChannel/ResponseHeader.h"
@@ -39,6 +40,9 @@ namespace OpcUaStackCore
 		virtual ~ServiceTransaction(void);
 
 		virtual SPtr constructTransaction(void) = 0;
+
+		void handle(Object::SPtr& handle);
+		Object::SPtr handle(void);
 
 		OpcUaUInt32 transactionId(void);
 		OpcUaNodeId& nodeTypeRequest(void);
@@ -63,6 +67,9 @@ namespace OpcUaStackCore
 		Component* componentSession(void);
 		void componentSession(Component* componentSession);
 
+		void userContext(UserContext::SPtr& userContext);
+		UserContext::SPtr& userContext(void);
+
 		virtual void opcUaBinaryEncodeRequest(std::ostream& os) const = 0;
 		virtual void opcUaBinaryEncodeResponse(std::ostream& os) const = 0;
 		virtual void opcUaBinaryDecodeRequest(std::istream& is) = 0;
@@ -83,6 +90,8 @@ namespace OpcUaStackCore
 		static boost::mutex mutex_;
 		static uint32_t getUniqueTransactionId(void);
 
+		Object::SPtr handle_;
+
 		uint32_t requestTimeout_;
 
 		bool sync_;
@@ -100,6 +109,7 @@ namespace OpcUaStackCore
 		Component* componentService_;
 		Component* componentSession_;
 
+		UserContext::SPtr userContext_;
 		OpcUaStatusCode statusCode_;
 	};
 

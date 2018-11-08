@@ -1,5 +1,5 @@
 /*
-   Copyright 2015-2017 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2018 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gem���� Apache Licence Version 2.0 (die ���Lizenz���); Nutzung dieser
    Datei nur in ��bereinstimmung mit der Lizenz erlaubt.
@@ -20,6 +20,8 @@
 
 #include "OpcUaStackCore/Base/os.h"
 #include "OpcUaStackCore/Base/Config.h"
+#include "OpcUaStackCore/Certificate/ApplicationCertificate.h"
+#include "OpcUaStackCore/Certificate/CryptoManager.h"
 #include "OpcUaStackServer/Application/ApplicationServiceIf.h"
 #include "OpcUaStackServer/Application/ApplicationInfo.h"
 #include "OpcUaStackServer/InformationModel/InformationModel.h"
@@ -27,62 +29,70 @@
 namespace OpcUaStackServer
 {
 
+	class DLLEXPORT ApplicationData
+	{
+	  public:
+		typedef boost::shared_ptr<ApplicationData> SPtr;
+
+		ApplicationData(void);
+		~ApplicationData(void);
+
+		void applicationServiceIf(ApplicationServiceIf* applicationServiceIf);
+		ApplicationServiceIf& applicationServiceIf(void);
+		void config(Config* config);
+		Config* config(void);
+		void applicationInfo(ApplicationInfo* applicationInfo);
+		ApplicationInfo* applicationInfo(void);
+		void applicationCertificate(const ApplicationCertificate::SPtr& applicationCertificate);
+		ApplicationCertificate::SPtr& applicationCertificate(void);
+		void cryptoManager(const CryptoManager::SPtr& cryptoManager);
+		CryptoManager::SPtr& cryptoManager(void);
+
+	  private:
+		ApplicationServiceIf* applicationServiceIf_;
+		Config* config_;
+		ApplicationInfo* applicationInfo_;
+		ApplicationCertificate::SPtr applicationCertificate_;
+		CryptoManager::SPtr cryptoManager_;
+	};
+
+
 	class DLLEXPORT ApplicationIf
 	{
 	  public:
-		ApplicationIf(void)
-	    : applicationServiceIf_(nullptr)
-	  	, config_(nullptr)
-	    , applicationInfo_(nullptr)
-	    {
-	    }
-		virtual ~ApplicationIf(void) {}
+		ApplicationIf(void);
+		virtual ~ApplicationIf(void);
 
 		virtual bool startup(void) = 0;
 		virtual bool shutdown(void) = 0;
-		virtual void receive(ServiceTransaction::SPtr serviceTransaction) {};
+		virtual void receive(ServiceTransaction::SPtr serviceTransaction);
+		virtual std::string version(void);
 
-		void service(ApplicationServiceIf* applicationServiceIf) {
-			applicationServiceIf_ = applicationServiceIf;
-		}
-
-		ApplicationServiceIf& service(void) {
-			return *applicationServiceIf_;
-		}
-
-		void config(Config* config) {
-			config_ = config;
-		}
-
-		Config* config(void) {
-			return config_;
-		}
-
-		void applicationInfo(ApplicationInfo* applicationInfo) {
-			applicationInfo_ = applicationInfo;
-		}
-
-		ApplicationInfo* applicationInfo(void) {
-			return applicationInfo_;
-		}
-
+		void service(ApplicationServiceIf* applicationServiceIf);
+		ApplicationServiceIf& service(void);
+		void config(Config* config);
+		Config* config(void);
+		void applicationInfo(ApplicationInfo* applicationInfo);
+		ApplicationInfo* applicationInfo(void);
+		void applicationCertificate(ApplicationCertificate::SPtr& applicationCertificate);
+		ApplicationCertificate::SPtr& applicationCertificate(void);
+		void cryptoManager(CryptoManager::SPtr cryptoManager);
+		CryptoManager::SPtr& cryptoManager(void);
+		void applicationData(ApplicationData::SPtr& applicationData);
+		ApplicationData::SPtr& applicationData(void);
+		
 		void informationModel(InformationModel::SPtr model) {
 		  informationModel_ = model;
 		}
 
 		InformationModel::SPtr informationModel(void) {
 		  return informationModel_;
-		}
-
-		virtual std::string version(void)
-		{
-			return "0.0.0";
-		}
+		}	
 
 	  private:
-		ApplicationServiceIf* applicationServiceIf_;
-		Config* config_;
-		ApplicationInfo* applicationInfo_;
+		ApplicationData::SPtr applicationData_;
+		InformationModel::SPtr informationModel_;
+
 		InformationModel::SPtr informationModel_;
 	};
 

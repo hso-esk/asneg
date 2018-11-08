@@ -1,5 +1,5 @@
 /*
-   Copyright 2015-2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2017 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -19,6 +19,7 @@
 #define __OpcUaStackCore_OpcUaDataValue_h__
 
 #include <boost/property_tree/ptree.hpp>
+#include "OpcUaStackCore/BuildInTypes/Xmlns.h"
 #include "OpcUaStackCore/BuildInTypes/OpcUaNumber.h"
 #include "OpcUaStackCore/BuildInTypes/OpcUaVariant.h"
 #include "OpcUaStackCore/BuildInTypes/OpcUaStatusCode.h"
@@ -40,6 +41,7 @@ namespace OpcUaStackCore
 	    OpcUaDataValue(void);
 		~OpcUaDataValue(void);
 
+		bool exist(void);
 		bool isNullVariant(void);
 		OpcUaVariant::SPtr variant(void);
 		void statusCode(const OpcUaStatusCode& opcUaStatusCode);
@@ -56,6 +58,8 @@ namespace OpcUaStackCore
 
 		void copyFrom(OpcUaDataValue& dataValue);
 		void copyTo(OpcUaDataValue& dataValue);
+		bool operator!=(const OpcUaDataValue& opcUaDataValue) const;
+		bool operator==(const OpcUaDataValue& opcUaDataValue) const;
 		bool trigger(OpcUaDataValue::SPtr dataValue, DataChangeTrigger dataChangeTrigger = DCT_StatusValue);
 		bool trigger(OpcUaDataValue& dataValue, DataChangeTrigger dataChangeTrigger = DCT_StatusValue);
 
@@ -67,9 +71,11 @@ namespace OpcUaStackCore
 
 		void opcUaBinaryEncode(std::ostream& os) const;
 		void opcUaBinaryDecode(std::istream& is);
-
 		bool encode(boost::property_tree::ptree& pt) const;
 		bool decode(boost::property_tree::ptree& pt, OpcUaBuildInType type, bool isArray);
+		bool xmlEncode(boost::property_tree::ptree& pt, const std::string& element, Xmlns& xmlns);
+		bool xmlEncode(boost::property_tree::ptree& pt, Xmlns& xmlns);
+		bool xmlDecode(boost::property_tree::ptree& pt, Xmlns& xmlns);
 
 	  private:
 		OpcUaVariant::SPtr opcUaVariantSPtr_;

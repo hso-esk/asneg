@@ -1,4 +1,5 @@
 #include "unittest.h"
+#include <iostream>
 #include "OpcUaStackCore/Base/Log.h"
 
 using namespace OpcUaStackCore;
@@ -8,6 +9,10 @@ class MyLogger : public LogIf
 	bool logout(LogLevel logLevel, const std::string& message) {
 		std::cout << "MyLogger - " << logLevel << " - " << message << std::endl;
 		return true;
+	}
+
+	LogLevel getLogLevel(void) {
+	    return LogLevel::Error;
 	}
 };
 

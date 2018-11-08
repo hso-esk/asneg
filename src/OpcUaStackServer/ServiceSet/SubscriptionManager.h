@@ -23,6 +23,7 @@
 #include "OpcUaStackCore/Base/IOService.h"
 #include "OpcUaStackCore/BuildInTypes/OpcUaStatusCode.h"
 #include "OpcUaStackCore/Utility/SlotTimer.h"
+#include "OpcUaStackCore/ServiceSetApplication/ForwardGlobalSync.h"
 #include "OpcUaStackCore/ServiceSet/SubscriptionServiceTransaction.h"
 #include "OpcUaStackCore/ServiceSet/MonitoredItemServiceTransaction.h"
 #include "OpcUaStackServer/ServiceSet/Subscription.h"
@@ -47,8 +48,9 @@ namespace OpcUaStackServer
 		SubscriptionManager(void);
 		~SubscriptionManager(void);
 
-		void ioService(IOService* ioService);
+		void ioThread(IOThread* ioThread);
 		void informationModel(InformationModel::SPtr informationModel);
+		void forwardGlobalSync(ForwardGlobalSync::SPtr& forwardGlobalSync);
 		void sessionId(uint32_t sessionId);
 
 		OpcUaStatusCode receive(ServiceTransactionCreateSubscription::SPtr trx);
@@ -65,9 +67,11 @@ namespace OpcUaStackServer
 
 	  private:
 		void subscriptionPublishTimeout(Subscription::SPtr subscription);
+		OpcUaStatusCode receiveAcknowledgement(uint32_t subscriptionId, uint32_t acknowledgmentNumber);
 
-		IOService* ioService_;
+		IOThread* ioThread_;
 		InformationModel::SPtr informationModel_;
+		ForwardGlobalSync::SPtr forwardGlobalSync_;
 		SubscriptionMap subscriptionMap_;
 		uint32_t sessionId_;
 
@@ -77,7 +81,6 @@ namespace OpcUaStackServer
 		double minPublishingInterval_;
 		uint32_t minLifetimeCount_;
 		uint32_t minMaxKeepAliveCount_;
-		SlotTimer::SPtr slotTimer_;
 	};
 
 }

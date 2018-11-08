@@ -1,5 +1,5 @@
 /*
-   Copyright 2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2018 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -27,6 +27,7 @@ namespace OpcUaStackServer
 
 	Application::Application(void)
 	: applicationIf_(nullptr)
+	, reloadIf_(nullptr)
 	, state_(ApplConstruct)
 	, applicationName_("")
 	, serviceComponent_(nullptr)
@@ -42,6 +43,18 @@ namespace OpcUaStackServer
 	{
 		applicationIf_ = applicationIf;
 		applicationIf_->service(this);
+	}
+
+	ApplicationIf*
+	Application::applicationIf(void)
+	{
+		return applicationIf_;
+	}
+
+	void
+	Application::reloadIf(ReloadIf* reloadIf)
+	{
+		reloadIf_ = reloadIf;
 	}
 
 	void
@@ -140,6 +153,14 @@ namespace OpcUaStackServer
 		serviceTransaction->conditionBool().waitForCondition();
 	}
 
+	void
+	Application::reload(void)
+	{
+		if (reloadIf_ != nullptr) {
+			return reloadIf_->reload();
+		}
+	}
+
 	// ------------------------------------------------------------------------
 	// ------------------------------------------------------------------------
 	//
@@ -157,6 +178,8 @@ namespace OpcUaStackServer
 			case OpcUaId_RegisterForwardGlobalRequest_Encoding_DefaultBinary:
 			case OpcUaId_GetNodeReferenceRequest_Encoding_DefaultBinary:
 			case OpcUaId_NamespaceInfoRequest_Encoding_DefaultBinary:
+			case OpcUaId_FireEventRequest_Encoding_DefaultBinary:
+			case OpcUaId_BrowsePathToNodeIdRequest_Encoding_DefaultBinary:
 			{
 				serviceTransaction->componentSession(this);
 				break;

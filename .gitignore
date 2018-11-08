@@ -14,7 +14,7 @@ ipch
 *.swo
 core
 *.log
-build
+build*
 build_deb
 build_src
 build_tst

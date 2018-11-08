@@ -1,5 +1,5 @@
 /*
-   Copyright 2015-2017 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2018 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -31,7 +31,9 @@ namespace OpcUaStackServer
 {
 
 	DiscoveryService::DiscoveryService(void)
-	: discoveryManagerIf_(nullptr)
+	: discoveryIf_(nullptr)
+	, applicationCertificate_(nullptr)
+	, endpointDescriptionArray_()
 	{
 	}
 
@@ -40,79 +42,78 @@ namespace OpcUaStackServer
 	}
 
 	void 
-	DiscoveryService::discoveryManagerIf(DiscoveryManagerIf* discoveryManagerIf)
+	DiscoveryService::discoveryIf(DiscoveryIf* discoveryIf)
 	{
-		discoveryManagerIf_ = discoveryManagerIf;
+		discoveryIf_ = discoveryIf;
 	}
 
 	void 
-	DiscoveryService::endpointDescriptionArray(EndpointDescriptionArray::SPtr endpointDescriptionArray)
+	DiscoveryService::endpointDescriptionSet(EndpointDescriptionSet::SPtr& endpointDescriptionSet)
 	{
-		endpointDescriptionArray_ = endpointDescriptionArray;
-	}
+		Log(Debug, "endpointDescriptionSet");
 
-	bool 
-	DiscoveryService::message(SecureChannelTransaction::SPtr secureChannelTransaction)
-	{
-		switch(secureChannelTransaction->requestTypeNodeId_.nodeId<OpcUaUInt32>())
-		{
-			case OpcUaId_RegisterServerRequest_Encoding_DefaultBinary:
-			{
-				Log(Debug, "receive register server request");
-				secureChannelTransaction->responseTypeNodeId_.nodeId(OpcUaId_RegisterServerResponse_Encoding_DefaultBinary);
-				return receiveRegisterServerRequest(secureChannelTransaction);
-			}
-			case OpcUaId_GetEndpointsRequest_Encoding_DefaultBinary:
-			{
-				Log(Debug, "receive get endpoints request");
-				secureChannelTransaction->responseTypeNodeId_.nodeId(OpcUaId_GetEndpointsResponse_Encoding_DefaultBinary);
-				return receiveGetEndpointsRequest(secureChannelTransaction);
-			}
-			case OpcUaId_FindServersRequest_Encoding_DefaultBinary:
-			{
-				Log(Debug, "receive get endpoints request");
-				secureChannelTransaction->responseTypeNodeId_.nodeId(OpcUaId_FindServersResponse_Encoding_DefaultBinary);
-				return receiveFindServersRequest(secureChannelTransaction);
-			}
-			default:
-			{
-				Log(Error, "Discovery service receives unknown message type")
-					.parameter("MessageType", secureChannelTransaction->requestTypeNodeId_.nodeId<OpcUaUInt32>());
-				break;
-			}
-		}
-		return false;
+		assert(endpointDescriptionSet.get() != nullptr);
+
+		endpointDescriptionArray_ = constructSPtr<EndpointDescriptionArray>();
+		endpointDescriptionSet->getEndpoints(endpointDescriptionArray_);
 	}
 
 	void
-	DiscoveryService::receive(Message::SPtr message)
+	DiscoveryService::applicationCertificate(ApplicationCertificate::SPtr& applicationCertificate)
 	{
-		ServiceTransaction::SPtr serviceTransaction = boost::static_pointer_cast<ServiceTransaction>(message);
-		switch (serviceTransaction->nodeTypeRequest().nodeId<uint32_t>())
-		{
-			case OpcUaId_RegisterServerRequest_Encoding_DefaultBinary:
-				receiveRegisterServerRequest(serviceTransaction);
-				break;
-			default:
-			{
-				Log(Error, "discovery service received unknown message type")
-					.parameter("TypeId", serviceTransaction->nodeTypeRequest());
+		Log(Debug, "applicationCertificate");
 
-				serviceTransaction->statusCode(BadInternalError);
-				serviceTransaction->componentSession()->send(serviceTransaction);
-				break;
-			}
+		assert(applicationCertificate.get() != nullptr);
+
+		applicationCertificate_ = applicationCertificate;
+
+		if (!applicationCertificate_->enable()) {
+			return;
 		}
+
+		Certificate::SPtr& certificate = applicationCertificate->certificate();
+		uint32_t certLen;
+		if (!certificate->toDERBufLen(&certLen)) {
+			return;
+		}
+		char* certBuf = new char[certLen];
+		if (!certificate->toDERBuf(certBuf, &certLen)) {
+			delete [] certBuf;
+			return;
+		}
+
+		for (uint32_t idx = 0; idx < endpointDescriptionArray_->size(); idx++) {
+			EndpointDescription::SPtr endpointDescription;
+			endpointDescriptionArray_->get(idx, endpointDescription);
+
+			if (!endpointDescription->needSecurity()) {
+				continue;
+			}
+
+			endpointDescription->serverCertificate((const unsigned char*)certBuf, certLen);
+		}
+
+		delete [] certBuf;
 	}
 
-	bool 
-	DiscoveryService::receiveGetEndpointsRequest(SecureChannelTransaction::SPtr secureChannelTransaction)
+	void
+	DiscoveryService::getEndpointRequest(
+		RequestHeader::SPtr requestHeader,
+		SecureChannelTransaction::SPtr secureChannelTransaction
+	)
 	{
+		assert(requestHeader.get() != nullptr);
+		assert(secureChannelTransaction.get() != nullptr);
+		assert(endpointDescriptionArray_.get() != nullptr);
+
+		Log(Debug, "receive get endpoint request request")
+		    .parameter("AvailableNumberEndpoints", endpointDescriptionArray_->size());
+
+		secureChannelTransaction->responseTypeNodeId_ = OpcUaId_GetEndpointsResponse_Encoding_DefaultBinary;
+
 		std::iostream is(&secureChannelTransaction->is_);
-		RequestHeader requestHeader;
 		GetEndpointsRequest getEndpointsRequest;
 
-		requestHeader.opcUaBinaryDecode(is);
 		getEndpointsRequest.opcUaBinaryDecode(is);
 
 		// FIXME: analyse request data
@@ -122,70 +123,31 @@ namespace OpcUaStackServer
 		ResponseHeader responseHeader;
 		GetEndpointsResponse getEndpointsResponse;
 
-		responseHeader.requestHandle(requestHeader.requestHandle());
+		responseHeader.requestHandle(requestHeader->requestHandle());
 		responseHeader.serviceResult(Success);
 		getEndpointsResponse.endpoints(endpointDescriptionArray_);
 
 		responseHeader.opcUaBinaryEncode(os);
 		getEndpointsResponse.opcUaBinaryEncode(os);
-	
-		if (discoveryManagerIf_ != nullptr) discoveryManagerIf_->discoveryMessage(secureChannelTransaction);
-		return true;
+
+		if (discoveryIf_ != nullptr) {
+			ResponseHeader::SPtr responseHeader = getEndpointsResponse.responseHeader();
+			discoveryIf_->discoveryResponseMessage(responseHeader, secureChannelTransaction);
+		}
 	}
 
-	bool 
-	DiscoveryService::receiveFindServersRequest(SecureChannelTransaction::SPtr secureChannelTransaction)
+	void
+	DiscoveryService::registerServerRequest(
+		RequestHeader::SPtr requestHeader,
+		SecureChannelTransaction::SPtr secureChannelTransaction
+	)
 	{
+		Log(Debug, "receive register server request request");
+		secureChannelTransaction->responseTypeNodeId_ = OpcUaId_RegisterServerResponse_Encoding_DefaultBinary;
+
 		std::iostream is(&secureChannelTransaction->is_);
-		RequestHeader requestHeader;
-		FindServersRequest findServersRequest;
-
-		requestHeader.opcUaBinaryDecode(is);
-		findServersRequest.opcUaBinaryDecode(is);
-
-		// FIXME: analyse request data
-
-		std::iostream os(&secureChannelTransaction->os_);
-
-		ResponseHeader responseHeader;
-		FindServersResponse findServersResponse;
-
-		responseHeader.requestHandle(requestHeader.requestHandle());
-
-		// check forward callback functions
-		ApplicationFindServerContext ctx;
-		ctx.statusCode_ = BadNotSupported;
-		if (forwardGlobalSync()->findServersService().isCallback()) {
-
-			// forward find server request
-			ctx.applicationContext_ = forwardGlobalSync()->findServersService().applicationContext();
-			findServersRequest.endpointUrl().copyTo(ctx.endpointUrl_);
-			ctx.localeIdArraySPtr_ = findServersRequest.localeIds();
-			ctx.serverUriArraySPtr_ = findServersRequest.serverUris();
-			forwardGlobalSync()->findServersService().callback()(&ctx);
-
-		}
-
-		responseHeader.serviceResult(ctx.statusCode_);
-		if (ctx.statusCode_ == Success) {
-			findServersResponse.servers(ctx.servers_);
-		}
-
-		responseHeader.opcUaBinaryEncode(os);
-		findServersResponse.opcUaBinaryEncode(os);
-
-		if (discoveryManagerIf_ != nullptr) discoveryManagerIf_->discoveryMessage(secureChannelTransaction);
-		return true;
-	}
-
-	bool
-	DiscoveryService::receiveRegisterServerRequest(SecureChannelTransaction::SPtr secureChannelTransaction)
-	{
-		std::iostream is(&secureChannelTransaction->is_);
-		RequestHeader requestHeader;
 		RegisterServerRequest registerServerRequest;
 
-		requestHeader.opcUaBinaryDecode(is);
 		registerServerRequest.opcUaBinaryDecode(is);
 
 		// FIXME: analyse request data
@@ -195,7 +157,7 @@ namespace OpcUaStackServer
 		ResponseHeader responseHeader;
 		RegisterServerResponse registerServerResponse;
 
-		responseHeader.requestHandle(requestHeader.requestHandle());
+		responseHeader.requestHandle(requestHeader->requestHandle());
 
 		// check forward callback functions
 		ApplicationRegisterServerContext ctx;
@@ -212,10 +174,86 @@ namespace OpcUaStackServer
 		responseHeader.opcUaBinaryEncode(os);
 		registerServerResponse.opcUaBinaryEncode(os);
 
-		if (discoveryManagerIf_ != nullptr) discoveryManagerIf_->discoveryMessage(secureChannelTransaction);
-		return true;
+		if (discoveryIf_ != nullptr) {
+			ResponseHeader::SPtr responseHeader = registerServerResponse.responseHeader();
+			discoveryIf_->discoveryResponseMessage(responseHeader, secureChannelTransaction);
+		}
 	}
 
+	void
+	DiscoveryService::findServersRequest(
+		RequestHeader::SPtr requestHeader,
+		SecureChannelTransaction::SPtr secureChannelTransaction
+	)
+	{
+		Log(Debug, "receive find servers request request");
+		secureChannelTransaction->responseTypeNodeId_ = OpcUaId_FindServersResponse_Encoding_DefaultBinary;
+
+		std::iostream is(&secureChannelTransaction->is_);
+		FindServersRequest findServersRequest;
+
+		findServersRequest.opcUaBinaryDecode(is);
+
+		// FIXME: analyse request data
+
+		std::iostream os(&secureChannelTransaction->os_);
+
+		ResponseHeader responseHeader;
+		FindServersResponse findServersResponse;
+
+		responseHeader.requestHandle(requestHeader->requestHandle());
+
+		// check forward callback functions
+		ApplicationFindServerContext ctx;
+		ctx.statusCode_ = BadNotSupported;
+		if (forwardGlobalSync()->findServersService().isCallback()) {
+
+			// forward find server request
+			ctx.applicationContext_ = forwardGlobalSync()->findServersService().applicationContext();
+			findServersRequest.endpointUrl().copyTo(ctx.endpointUrl_);
+			ctx.localeIdArraySPtr_ = findServersRequest.localeIds();
+			ctx.serverUriArraySPtr_ = findServersRequest.serverUris();
+			forwardGlobalSync()->findServersService().callback()(&ctx);
+		}
+
+		responseHeader.serviceResult(ctx.statusCode_);
+		if (ctx.statusCode_ == Success) {
+			findServersResponse.servers(ctx.servers_);
+		}
+
+		responseHeader.opcUaBinaryEncode(os);
+		findServersResponse.opcUaBinaryEncode(os);
+
+		if (discoveryIf_ != nullptr) {
+			ResponseHeader::SPtr responseHeader = findServersResponse.responseHeader();
+			discoveryIf_->discoveryResponseMessage(responseHeader, secureChannelTransaction);
+		}
+	}
+
+
+	void
+	DiscoveryService::receive(Message::SPtr message)
+	{
+#if 0
+		ServiceTransaction::SPtr serviceTransaction = boost::static_pointer_cast<ServiceTransaction>(message);
+		switch (serviceTransaction->nodeTypeRequest().nodeId<uint32_t>())
+		{
+			case OpcUaId_RegisterServerRequest_Encoding_DefaultBinary:
+				receiveRegisterServerRequest(serviceTransaction);
+				break;
+			default:
+			{
+				Log(Error, "discovery service received unknown message type")
+					.parameter("TypeId", serviceTransaction->nodeTypeRequest());
+
+				serviceTransaction->statusCode(BadInternalError);
+				serviceTransaction->componentSession()->send(serviceTransaction);
+				break;
+			}
+		}
+#endif
+	}
+#if 0
 	void
 	DiscoveryService::receiveRegisterServerRequest(ServiceTransaction::SPtr serviceTransaction)
 	{
@@ -242,5 +280,6 @@ namespace OpcUaStackServer
 		trx->statusCode(ctx.statusCode_);
 		trx->componentSession()->send(serviceTransaction);
 	}
+#endif
 
 }

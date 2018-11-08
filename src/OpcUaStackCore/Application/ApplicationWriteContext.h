@@ -1,5 +1,5 @@
 /*
-   Copyright 2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2018 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -18,7 +18,9 @@
 #ifndef __OpcUaStackCore_ApplicationWriteContext_h__
 #define __OpcUaStackCore_ApplicationWriteContext_h__
 
+#include "OpcUaStackCore/Base/os.h"
 #include "OpcUaStackCore/Base/BaseClass.h"
+#include "OpcUaStackCore/Base/UserContext.h"
 #include "OpcUaStackCore/BuildInTypes/OpcUaNodeId.h"
 #include "OpcUaStackCore/BuildInTypes/OpcUaDataValue.h"
 #include "OpcUaStackCore/BuildInTypes/OpcUaStatusCode.h"
@@ -26,13 +28,17 @@
 namespace OpcUaStackCore
 {
 
-	class ApplicationWriteContext
+	class DLLEXPORT ApplicationWriteContext
 	{
 	  public:
+		ApplicationWriteContext(void);
+		~ApplicationWriteContext(void);
+
 		BaseClass::SPtr applicationContext_;	// IN - application context from register call
 		OpcUaNodeId nodeId_;					// IN - node id to be write
 		uint32_t attributeId_;					// IN - attribute id to be write
 		OpcUaDataValue dataValue_;				// IN - variable
+		UserContext::SPtr userContext_;			// IN - user context
 		OpcUaStatusCode statusCode_;			// OUT - result state of the write operation
 	};
 

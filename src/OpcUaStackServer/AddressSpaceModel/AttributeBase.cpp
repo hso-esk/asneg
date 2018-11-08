@@ -15,6 +15,8 @@
    Autor: Kai Huebl (kai@huebl-sgh.de)
  */
 
+#include <boost/thread.hpp>
+#include <boost/thread/shared_mutex.hpp>
 #include "OpcUaStackCore/Base/Log.h"
 #include "OpcUaStackServer/AddressSpaceModel/AttributeBase.h"
 
@@ -44,7 +46,7 @@ namespace OpcUaStackServer
 		mutex_.unlock();
 	}
 
-	boost::mutex&
+	boost::shared_mutex&
 	AttributeBase::mutex(void)
 	{
 		return mutex_;
@@ -416,6 +418,13 @@ namespace OpcUaStackServer
 	}
 
 	bool
+	AttributeBase::setNodeIdSync(OpcUaNodeId& nodeId)
+	{
+		boost::unique_lock<boost::shared_mutex> lock(mutex_);
+		return setNodeId(nodeId);
+	}
+
+	bool
 	AttributeBase::setNodeId(OpcUaNodeId& nodeId)
 	{
 		if (!isPartNodeId()) return false;
@@ -423,6 +432,13 @@ namespace OpcUaStackServer
 		nodeId.copyTo(attr->data());
 		attr->exist(true);
 		return true;
+	}
+
+	bool
+	AttributeBase::getNodeIdSync(OpcUaNodeId& nodeId)
+	{
+		boost::unique_lock<boost::shared_mutex> lock(mutex_);
+		return getNodeId(nodeId);
 	}
 
 	bool
@@ -477,6 +493,13 @@ namespace OpcUaStackServer
 	}
 
 	bool
+	AttributeBase::setNodeClassSync(NodeClassType& nodeClass)
+	{
+		boost::unique_lock<boost::shared_mutex> lock(mutex_);
+		return setNodeClass(nodeClass);
+	}
+
+	bool
 	AttributeBase::setNodeClass(NodeClassType& nodeClass)
 	{
 		if (!isPartNodeClass()) return false;
@@ -484,6 +507,13 @@ namespace OpcUaStackServer
 		attr->data(nodeClass);
 		attr->exist(true);
 		return true;
+	}
+
+	bool
+	AttributeBase::getNodeClassSync(NodeClassType& nodeClass)
+	{
+		boost::unique_lock<boost::shared_mutex> lock(mutex_);
+		return getNodeClass(nodeClass);
 	}
 
 	bool
@@ -538,6 +568,13 @@ namespace OpcUaStackServer
 	}
 
 	bool
+	AttributeBase::setBrowseNameSync(OpcUaQualifiedName& browseName)
+	{
+		boost::unique_lock<boost::shared_mutex> lock(mutex_);
+		return setBrowseName(browseName);
+	}
+
+	bool
 	AttributeBase::setBrowseName(OpcUaQualifiedName& browseName)
 	{
 		if (!isPartBrowseName()) return false;
@@ -545,6 +582,13 @@ namespace OpcUaStackServer
 		browseName.copyTo(attr->data());
 		attr->exist(true);
 		return true;
+	}
+
+	bool
+	AttributeBase::getBrowseNameSync(OpcUaQualifiedName& browseName)
+	{
+		boost::unique_lock<boost::shared_mutex> lock(mutex_);
+		return getBrowseName(browseName);
 	}
 
 	bool
@@ -599,6 +643,13 @@ namespace OpcUaStackServer
 	}
 
 	bool
+	AttributeBase::setDisplayNameSync(OpcUaLocalizedText& displayName)
+	{
+		boost::unique_lock<boost::shared_mutex> lock(mutex_);
+		return setDisplayName(displayName);
+	}
+
+	bool
 	AttributeBase::setDisplayName(OpcUaLocalizedText& displayName)
 	{
 		if (!isPartDisplayName()) return false;
@@ -606,6 +657,13 @@ namespace OpcUaStackServer
 		displayName.copyTo(attr->data());
 		attr->exist(true);
 		return true;
+	}
+
+	bool
+	AttributeBase::getDisplayNameSync(OpcUaLocalizedText& displayName)
+	{
+		boost::unique_lock<boost::shared_mutex> lock(mutex_);
+		return getDisplayName(displayName);
 	}
 
 	bool
@@ -660,6 +718,13 @@ namespace OpcUaStackServer
 	}
 
 	bool
+	AttributeBase::setDescriptionSync(OpcUaLocalizedText& description)
+	{
+		boost::unique_lock<boost::shared_mutex> lock(mutex_);
+		return setDescription(description);
+	}
+
+	bool
 	AttributeBase::setDescription(OpcUaLocalizedText& description)
 	{
 		if (!isPartDescription()) return false;
@@ -667,6 +732,13 @@ namespace OpcUaStackServer
 		description.copyTo(attr->data());
 		attr->exist(true);
 		return true;
+	}
+
+	bool
+	AttributeBase::getDescriptionSync(OpcUaLocalizedText& description)
+	{
+		boost::unique_lock<boost::shared_mutex> lock(mutex_);
+		return getDescription(description);
 	}
 
 	bool
@@ -721,6 +793,13 @@ namespace OpcUaStackServer
 	}
 
 	bool
+	AttributeBase::setWriteMaskSync(OpcUaUInt32 writeMask)
+	{
+		boost::unique_lock<boost::shared_mutex> lock(mutex_);
+		return setWriteMask(writeMask);
+	}
+
+	bool
 	AttributeBase::setWriteMask(OpcUaUInt32 writeMask)
 	{
 		if (!isPartWriteMask()) return false;
@@ -728,6 +807,13 @@ namespace OpcUaStackServer
 		attr->data(writeMask);
 		attr->exist(true);
 		return true;
+	}
+
+	bool
+	AttributeBase::getWriteMaskSync(OpcUaUInt32& writeMask)
+	{
+		boost::unique_lock<boost::shared_mutex> lock(mutex_);
+		return getWriteMask(writeMask);
 	}
 
 	bool
@@ -782,6 +868,13 @@ namespace OpcUaStackServer
 	}
 
 	bool
+	AttributeBase::setUserWriteMaskSync(OpcUaUInt32 userWriteMask)
+	{
+		boost::unique_lock<boost::shared_mutex> lock(mutex_);
+		return setUserWriteMask(userWriteMask);
+	}
+
+	bool
 	AttributeBase::setUserWriteMask(OpcUaUInt32 userWriteMask)
 	{
 		if (!isPartUserWriteMask()) return false;
@@ -789,6 +882,13 @@ namespace OpcUaStackServer
 		attr->data(userWriteMask);
 		attr->exist(true);
 		return true;
+	}
+
+	bool
+	AttributeBase::getUserWriteMaskSync(OpcUaUInt32& userWriteMask)
+	{
+		boost::unique_lock<boost::shared_mutex> lock(mutex_);
+		return getUserWriteMask(userWriteMask);
 	}
 
 	bool
@@ -843,6 +943,13 @@ namespace OpcUaStackServer
 	}
 
 	bool
+	AttributeBase::setIsAbstractSync(OpcUaBoolean& isAbstract)
+	{
+		boost::unique_lock<boost::shared_mutex> lock(mutex_);
+		return setIsAbstract(isAbstract);
+	}
+
+	bool
 	AttributeBase::setIsAbstract(OpcUaBoolean& isAbstract)
 	{
 		if (!isPartIsAbstract()) return false;
@@ -850,6 +957,13 @@ namespace OpcUaStackServer
 		attr->data(isAbstract);
 		attr->exist(true);
 		return true;
+	}
+
+	bool
+	AttributeBase::getIsAbstractSync(OpcUaBoolean& isAbstract)
+	{
+		boost::unique_lock<boost::shared_mutex> lock(mutex_);
+		return getIsAbstract(isAbstract);
 	}
 
 	bool
@@ -904,6 +1018,13 @@ namespace OpcUaStackServer
 	}
 
 	bool
+	AttributeBase::setSymmetricSync(OpcUaBoolean& symmetric)
+	{
+		boost::unique_lock<boost::shared_mutex> lock(mutex_);
+		return setSymmetric(symmetric);
+	}
+
+	bool
 	AttributeBase::setSymmetric(OpcUaBoolean& symmetric)
 	{
 		if (!isPartSymmetric()) return false;
@@ -911,6 +1032,13 @@ namespace OpcUaStackServer
 		attr->data(symmetric);
 		attr->exist(true);
 		return true;
+	}
+
+	bool
+	AttributeBase::getSymmetricSync(OpcUaBoolean& symmetric)
+	{
+		boost::unique_lock<boost::shared_mutex> lock(mutex_);
+		return getSymmetric(symmetric);
 	}
 
 	bool
@@ -966,6 +1094,13 @@ namespace OpcUaStackServer
 	}
 
 	bool
+	AttributeBase::setInverseNameSync(OpcUaLocalizedText& inverseName)
+	{
+		boost::unique_lock<boost::shared_mutex> lock(mutex_);
+		return setInverseName(inverseName);
+	}
+
+	bool
 	AttributeBase::setInverseName(OpcUaLocalizedText& inverseName)
 	{
 		if (!isPartInverseName()) return false;
@@ -973,6 +1108,13 @@ namespace OpcUaStackServer
 		inverseName.copyTo(attr->data());
 		attr->exist(true);
 		return true;
+	}
+
+	bool
+	AttributeBase::getInverseNameSync(OpcUaLocalizedText& inverseName)
+	{
+		boost::unique_lock<boost::shared_mutex> lock(mutex_);
+		return getInverseName(inverseName);
 	}
 
 	bool
@@ -1028,6 +1170,13 @@ namespace OpcUaStackServer
 	}
 
 	bool
+	AttributeBase::setContainsNoLoopsSync(OpcUaBoolean& containsNoLoops)
+	{
+		boost::unique_lock<boost::shared_mutex> lock(mutex_);
+		return setContainsNoLoops(containsNoLoops);
+	}
+
+	bool
 	AttributeBase::setContainsNoLoops(OpcUaBoolean& containsNoLoops)
 	{
 		if (!isPartContainsNoLoops()) return false;
@@ -1035,6 +1184,13 @@ namespace OpcUaStackServer
 		attr->data(containsNoLoops);
 		attr->exist(true);
 		return true;
+	}
+
+	bool
+	AttributeBase::getContainsNoLoopsSync(OpcUaBoolean& containsNoLoops)
+	{
+		boost::unique_lock<boost::shared_mutex> lock(mutex_);
+		return getContainsNoLoops(containsNoLoops);
 	}
 
 	bool
@@ -1089,6 +1245,13 @@ namespace OpcUaStackServer
 	}
 
 	bool
+	AttributeBase::setEventNotifierSync(OpcUaByte eventNotifier)
+	{
+		boost::unique_lock<boost::shared_mutex> lock(mutex_);
+		return setEventNotifier(eventNotifier);
+	}
+
+	bool
 	AttributeBase::setEventNotifier(OpcUaByte eventNotifier)
 	{
 		if (!isPartEventNotifier()) return false;
@@ -1096,6 +1259,13 @@ namespace OpcUaStackServer
 		attr->data(eventNotifier);
 		attr->exist(true);
 		return true;
+	}
+
+	bool
+	AttributeBase::getEventNotifierSync(OpcUaByte& eventNotifier)
+	{
+		boost::unique_lock<boost::shared_mutex> lock(mutex_);
+		return getEventNotifier(eventNotifier);
 	}
 
 	bool
@@ -1150,6 +1320,13 @@ namespace OpcUaStackServer
 	}
 
 	bool
+	AttributeBase::setValueSync(OpcUaDataValue& value)
+	{
+		boost::unique_lock<boost::shared_mutex> lock(mutex_);
+		return setValue(value);
+	}
+
+	bool
 	AttributeBase::setValue(OpcUaDataValue& value)
 	{
 		if (!isPartValue()) return false;
@@ -1157,6 +1334,13 @@ namespace OpcUaStackServer
 		value.copyTo(attr->data());
 		attr->exist(true);
 		return true;
+	}
+
+	bool
+	AttributeBase::getValueSync(OpcUaDataValue& value)
+	{
+		boost::unique_lock<boost::shared_mutex> lock(mutex_);
+		return getValue(value);
 	}
 
 	bool
@@ -1212,6 +1396,13 @@ namespace OpcUaStackServer
 	}
 
 	bool
+	AttributeBase::setDataTypeSync(OpcUaNodeId& dataType)
+	{
+		boost::unique_lock<boost::shared_mutex> lock(mutex_);
+		return setDataType(dataType);
+	}
+
+	bool
 	AttributeBase::setDataType(OpcUaNodeId& dataType)
 	{
 		if (!isPartDataType()) return false;
@@ -1219,6 +1410,13 @@ namespace OpcUaStackServer
 		dataType.copyTo(attr->data());
 		attr->exist(true);
 		return true;
+	}
+
+	bool
+	AttributeBase::getDataTypeSync(OpcUaNodeId& dataType)
+	{
+		boost::unique_lock<boost::shared_mutex> lock(mutex_);
+		return getDataType(dataType);
 	}
 
 	bool
@@ -1273,6 +1471,13 @@ namespace OpcUaStackServer
 	}
 
 	bool
+	AttributeBase::setValueRankSync(OpcUaInt32& valueRank)
+	{
+		boost::unique_lock<boost::shared_mutex> lock(mutex_);
+		return setValueRank(valueRank);
+	}
+
+	bool
 	AttributeBase::setValueRank(OpcUaInt32& valueRank)
 	{
 		if (!isPartValueRank()) return false;
@@ -1280,6 +1485,13 @@ namespace OpcUaStackServer
 		attr->data(valueRank);
 		attr->exist(true);
 		return true;
+	}
+
+	bool
+	AttributeBase::getValueRankSync(OpcUaInt32& valueRank)
+	{
+		boost::unique_lock<boost::shared_mutex> lock(mutex_);
+		return getValueRank(valueRank);
 	}
 
 	bool
@@ -1334,6 +1546,13 @@ namespace OpcUaStackServer
 	}
 
 	bool
+	AttributeBase::setArrayDimensionsSync(OpcUaUInt32Array& arrayDimensions)
+	{
+		boost::unique_lock<boost::shared_mutex> lock(mutex_);
+		return setArrayDimensions(arrayDimensions);
+	}
+
+	bool
 	AttributeBase::setArrayDimensions(OpcUaUInt32Array& arrayDimensions)
 	{
 		if (!isPartArrayDimensions()) return false;
@@ -1341,6 +1560,13 @@ namespace OpcUaStackServer
 		arrayDimensions.copyTo(attr->data());
 		attr->exist(true);
 		return true;
+	}
+
+	bool
+	AttributeBase::getArrayDimensionsSync(OpcUaUInt32Array& arrayDimensions)
+	{
+		boost::unique_lock<boost::shared_mutex> lock(mutex_);
+		return getArrayDimensions(arrayDimensions);
 	}
 
 	bool
@@ -1395,6 +1621,13 @@ namespace OpcUaStackServer
 	}
 
 	bool
+	AttributeBase::setAccessLevelSync(OpcUaByte& accessLevel)
+	{
+		boost::unique_lock<boost::shared_mutex> lock(mutex_);
+		return setAccessLevel(accessLevel);
+	}
+
+	bool
 	AttributeBase::setAccessLevel(OpcUaByte& accessLevel)
 	{
 		if (!isPartAccessLevel()) return false;
@@ -1402,6 +1635,13 @@ namespace OpcUaStackServer
 		attr->data(accessLevel);
 		attr->exist(true);
 		return true;
+	}
+
+	bool
+	AttributeBase::getAccessLevelSync(OpcUaByte& accessLevel)
+	{
+		boost::unique_lock<boost::shared_mutex> lock(mutex_);
+		return getAccessLevel(accessLevel);
 	}
 
 	bool
@@ -1456,6 +1696,13 @@ namespace OpcUaStackServer
 	}
 
 	bool
+	AttributeBase::setUserAccessLevelSync(OpcUaByte& userAccessLevel)
+	{
+		boost::unique_lock<boost::shared_mutex> lock(mutex_);
+		return setUserAccessLevel(userAccessLevel);
+	}
+
+	bool
 	AttributeBase::setUserAccessLevel(OpcUaByte& userAccessLevel)
 	{
 		if (!isPartUserAccessLevel()) return false;
@@ -1463,6 +1710,13 @@ namespace OpcUaStackServer
 		attr->data(userAccessLevel);
 		attr->exist(true);
 		return true;
+	}
+
+	bool
+	AttributeBase::getUserAccessLevelSync(OpcUaByte& userAccessLevel)
+	{
+		boost::unique_lock<boost::shared_mutex> lock(mutex_);
+		return getUserAccessLevel(userAccessLevel);
 	}
 
 	bool
@@ -1517,6 +1771,13 @@ namespace OpcUaStackServer
 	}
 
 	bool
+	AttributeBase::setHistorizingSync(OpcUaBoolean& historizing)
+	{
+		boost::unique_lock<boost::shared_mutex> lock(mutex_);
+		return setHistorizing(historizing);
+	}
+
+	bool
 	AttributeBase::setHistorizing(OpcUaBoolean& historizing)
 	{
 		if (!isPartHistorizing()) return false;
@@ -1524,6 +1785,13 @@ namespace OpcUaStackServer
 		attr->data(historizing);
 		attr->exist(true);
 		return true;
+	}
+
+	bool
+	AttributeBase::getHistorizingSync(OpcUaBoolean& historizing)
+	{
+		boost::unique_lock<boost::shared_mutex> lock(mutex_);
+		return getHistorizing(historizing);
 	}
 
 	bool
@@ -1578,6 +1846,13 @@ namespace OpcUaStackServer
 	}
 
 	bool
+	AttributeBase::setExecutableSync(OpcUaBoolean& executable)
+	{
+		boost::unique_lock<boost::shared_mutex> lock(mutex_);
+		return setExecutable(executable);
+	}
+
+	bool
 	AttributeBase::setExecutable(OpcUaBoolean& executable)
 	{
 		if (!isPartExecutable()) return false;
@@ -1585,6 +1860,13 @@ namespace OpcUaStackServer
 		attr->data(executable);
 		attr->exist(true);
 		return true;
+	}
+
+	bool
+	AttributeBase::getExecutableSync(OpcUaBoolean& executable)
+	{
+		boost::unique_lock<boost::shared_mutex> lock(mutex_);
+		return getExecutable(executable);
 	}
 
 	bool
@@ -1639,6 +1921,13 @@ namespace OpcUaStackServer
 	}
 
 	bool
+	AttributeBase::setUserExecutableSync(OpcUaBoolean& userExecutable)
+	{
+		boost::unique_lock<boost::shared_mutex> lock(mutex_);
+		return setUserExecutable(userExecutable);
+	}
+
+	bool
 	AttributeBase::setUserExecutable(OpcUaBoolean& userExecutable)
 	{
 		if (!isPartUserExecutable()) return false;
@@ -1646,6 +1935,13 @@ namespace OpcUaStackServer
 		attr->data(userExecutable);
 		attr->exist(true);
 		return true;
+	}
+
+	bool
+	AttributeBase::getUserExecutableSync(OpcUaBoolean& userExecutable)
+	{
+		boost::unique_lock<boost::shared_mutex> lock(mutex_);
+		return getUserExecutable(userExecutable);
 	}
 
 	bool
@@ -1700,6 +1996,13 @@ namespace OpcUaStackServer
 	}
 
 	bool
+	AttributeBase::setMinimumSamplingIntervalSync(OpcUaDouble& minimumSamplingInterval)
+	{
+		boost::unique_lock<boost::shared_mutex> lock(mutex_);
+		return setMinimumSamplingInterval(minimumSamplingInterval);
+	}
+
+	bool
 	AttributeBase::setMinimumSamplingInterval(OpcUaDouble& minimumSamplingInterval)
 	{
 		if (!isPartMinimumSamplingInterval()) return false;
@@ -1707,6 +2010,13 @@ namespace OpcUaStackServer
 		attr->data(minimumSamplingInterval);
 		attr->exist(true);
 		return true;
+	}
+
+	bool
+	AttributeBase::getMinimumSamplingIntervalSync(OpcUaDouble& minimumSamplingInterval)
+	{
+		boost::unique_lock<boost::shared_mutex> lock(mutex_);
+		return getMinimumSamplingInterval(minimumSamplingInterval);
 	}
 
 	bool

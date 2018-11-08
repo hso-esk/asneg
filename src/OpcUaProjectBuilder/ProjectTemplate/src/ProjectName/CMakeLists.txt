@@ -54,9 +54,10 @@ add_library(
 
 target_link_libraries(
     ProjectName
-    ${pthread}
     ${OPCUASTACK_LIBRARY_CORE}
     ${OPCUASTACK_LIBRARY_CLIENT}
+    ${OPCUASTACK_LIBRARY_SERVER}
+    ${OPCUASTACK_LIBRARY_PUBSUB}
     ${Boost_LIBRARIES}
     ${CMAKE_THREAD_LIBS_INIT}
 )

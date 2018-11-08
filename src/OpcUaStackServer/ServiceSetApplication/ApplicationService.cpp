@@ -1,5 +1,5 @@
 /*
-   Copyright 2015-2017 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2018 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -19,6 +19,7 @@
 #include "OpcUaStackCore/ServiceSetApplication/ApplicationServiceTransaction.h"
 #include "OpcUaStackCore/BuildInTypes/OpcUaIdentifier.h"
 #include "OpcUaStackServer/InformationModel/InformationModelManager.h"
+#include "OpcUaStackServer/InformationModel/InformationModelAccess.h"
 #include "OpcUaStackServer/ServiceSetApplication/ApplicationService.h"
 #include "OpcUaStackServer/ServiceSetApplication/NodeReferenceApplication.h"
 #include "OpcUaStackServer/AddressSpaceModel/AttributeAccess.h"
@@ -62,6 +63,12 @@ namespace OpcUaStackServer
 				break;
 			case OpcUaId_DelNodeInstanceRequest_Encoding_DefaultBinary:
 				receiveDelNodeInstanceRequest(serviceTransaction);
+				break;
+			case OpcUaId_FireEventRequest_Encoding_DefaultBinary:
+				receiveFireEventRequest(serviceTransaction);
+				break;
+			case OpcUaId_BrowsePathToNodeIdRequest_Encoding_DefaultBinary:
+				receiveBrowsePathToNodeIdRequest(serviceTransaction);
 				break;
 			default:
 				Log(Error, "application service received unknown message type")
@@ -365,6 +372,194 @@ namespace OpcUaStackServer
 			trx->statusCode(BadInternalError);
 		}
 		trx->componentSession()->send(serviceTransaction);
+	}
+
+	void
+	ApplicationService::receiveFireEventRequest(ServiceTransaction::SPtr serviceTransaction)
+	{
+		ServiceTransactionFireEvent::SPtr trx = boost::static_pointer_cast<ServiceTransactionFireEvent>(serviceTransaction);
+
+		FireEventRequest::SPtr fireEventRequest = trx->request();
+		FireEventResponse::SPtr fireEventResponse = trx->response();
+
+		//
+		// find object node
+		//
+		BaseNodeClass::SPtr baseNodeClass = informationModel_->find(fireEventRequest->nodeId());
+		if (baseNodeClass.get() == nullptr) {
+			Log(Debug, "fire event error, because node not exist in information model")
+				.parameter("Trx", serviceTransaction->transactionId())
+				.parameter("Node", fireEventRequest->nodeId());
+
+			trx->statusCode(BadNodeIdUnknown);
+			trx->componentSession()->send(serviceTransaction);
+			return;
+		}
+
+		//
+		// get nodes from event hierarchy
+		//
+		std::vector<OpcUaNodeId> nodeIdVec;
+		std::vector<OpcUaNodeId>::iterator nodeIt;;
+
+		std::set<OpcUaNodeId> duplicateNodeIdSet;
+		std::set<OpcUaNodeId> workNodeIdSet;
+
+		workNodeIdSet.insert(fireEventRequest->nodeId());
+
+		while (workNodeIdSet.size() != 0)
+		{
+			// get first node from node id set
+			OpcUaNodeId nodeId = *workNodeIdSet.begin();
+			workNodeIdSet.erase(workNodeIdSet.begin());
+
+			nodeIdVec.push_back(nodeId);
+			duplicateNodeIdSet.insert(nodeId);
+
+			// get base class
+			BaseNodeClass::SPtr node = informationModel_->find(nodeId);
+			if (node.get() == nullptr) continue;
+
+			// get all parent nodes of event notifier reference (backward)
+			InformationModelAccess ima(informationModel_);
+			OpcUaNodeId referenceTypeNodeId(OpcUaId_HasNotifier);
+			std::vector<OpcUaNodeId> parentNodeIdVec;
+			bool success = ima.getParentHierarchically(
+				baseNodeClass,
+				referenceTypeNodeId,
+				parentNodeIdVec
+			);
+			if (!success) {
+				continue;
+			}
+
+			std::vector<OpcUaNodeId>::iterator itpn;
+			for (itpn = parentNodeIdVec.begin(); itpn != parentNodeIdVec.end(); itpn++) {
+				// check duplicate
+				if (duplicateNodeIdSet.find(*itpn) != duplicateNodeIdSet.end()) {
+					continue;
+				}
+				workNodeIdSet.insert(*itpn);
+			}
+		};
+
+		//
+		// find event filter
+		//
+		EventHandlerMap& eventHandlerMap = informationModel_->eventHandlerMap();
+
+		EventHandlerBase::Vec eventHandlerBaseVec;
+		EventHandlerBase::Vec::iterator it;
+
+		for (nodeIt = nodeIdVec.begin(); nodeIt != nodeIdVec.end(); nodeIt++) {
+			boost::mutex::scoped_lock g(eventHandlerMap.mutex());
+			eventHandlerMap.getEvent(*nodeIt, eventHandlerBaseVec);
+			for (it = eventHandlerBaseVec.begin(); it != eventHandlerBaseVec.end(); it++) {
+				EventHandlerBase::SPtr eventHandlerBase = *it;
+
+				Log(Debug, "fire event")
+				    .parameter("NumberEvents", eventHandlerBaseVec.size())
+					.parameter("Node", fireEventRequest->nodeId())
+					.parameter("EventId", eventHandlerBase->eventId());
+
+				eventHandlerBase->fireEvent(fireEventRequest->nodeId(), fireEventRequest->eventBase());
+			}
+		}
+
+		trx->statusCode(Success);
+		trx->componentSession()->send(serviceTransaction);
+	}
+
+	void
+	ApplicationService::receiveBrowsePathToNodeIdRequest(ServiceTransaction::SPtr serviceTransaction)
+	{
+		ServiceTransactionBrowsePathToNodeId::SPtr trx = boost::static_pointer_cast<ServiceTransactionBrowsePathToNodeId>(serviceTransaction);
+
+		BrowsePathToNodeIdRequest::SPtr req = trx->request();
+		BrowsePathToNodeIdResponse::SPtr res = trx->response();
+
+		uint32_t size = req->browseNameArray()->size();
+		if (size == 0) {
+			trx->statusCode(BadInvalidArgument);
+			trx->componentSession()->send(serviceTransaction);
+		}
+
+		res->nodeIdResults()->resize(size);
+		for (uint32_t idx = 0; idx < size; idx++) {
+			BrowseName::SPtr browseName;
+			req->browseNameArray()->get(idx, browseName);
+			NodeIdResult::SPtr nodeIdResult = constructSPtr<NodeIdResult>();
+
+			getNodeIdFromBrowsePath(browseName, nodeIdResult);
+			res->nodeIdResults()->set(idx, nodeIdResult);
+		}
+
+		trx->statusCode(Success);
+		trx->componentSession()->send(serviceTransaction);
+	}
+
+	void
+	ApplicationService::getNodeIdFromBrowsePath(
+		BrowseName::SPtr& browseName,
+		NodeIdResult::SPtr& nodeIdResult
+	)
+	{
+		//
+		// check parameter
+		//
+		if (browseName->pathNames()->size() == 0) {
+			nodeIdResult->statusCode(BadInvalidArgument);
+			return;
+		}
+
+		//
+		// find object node
+		//
+		BaseNodeClass::SPtr baseNodeClass = informationModel_->find(browseName->nodeId());
+		if (baseNodeClass.get() == nullptr) {
+			Log(Debug, "browse path from node id error, because node not exist in information model")
+				.parameter("Node", browseName->nodeId());
+
+			nodeIdResult->statusCode(BadNodeIdUnknown);
+			return;
+		}
+
+		//
+		// translate browse path to node id
+		//
+		for (uint32_t idx = 0; idx < browseName->pathNames()->size(); idx++) {
+			OpcUaQualifiedName::SPtr pathElement;
+			browseName->pathNames()->get(idx, pathElement);
+
+			ReferenceItemMap& referenceItemMap = baseNodeClass->referenceItemMap();
+			ReferenceItemMultiMap::iterator it;
+
+			bool found = false;
+			for (it = referenceItemMap.referenceItemMultiMap().begin(); it != referenceItemMap.referenceItemMultiMap().end(); it++) {
+				OpcUaNodeId referenceTypeNodeId = it->first;
+				ReferenceItem::SPtr referenceItem = it->second;
+
+				BaseNodeClass::SPtr baseNodeClassTarget = informationModel_->find(referenceItem->nodeId_);
+				if (baseNodeClassTarget.get() == nullptr) {
+					continue;
+				}
+
+				if (baseNodeClassTarget->browseName().data() == *pathElement) {
+					nodeIdResult->nodeId(referenceItem->nodeId_);
+					baseNodeClass = baseNodeClassTarget;
+					found = true;
+					break;
+				}
+			}
+
+			if (!found) {
+				nodeIdResult->statusCode(BadNodeIdUnknown);
+				return;
+			}
+		}
+
+		nodeIdResult->statusCode(Success);
+		return;
 	}
 
 }

@@ -1,5 +1,5 @@
 /*
-   Copyright 2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2017 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -22,7 +22,6 @@ namespace OpcUaStackServer
 {
 
 	uint32_t Subscription::uniqueSubscriptionId_ = 0;
-	uint32_t Subscription::sequenceNumber_;
 	boost::mutex Subscription::mutex_;
 
 	uint32_t 
@@ -33,21 +32,16 @@ namespace OpcUaStackServer
 		return uniqueSubscriptionId_;
 	}
 
-	uint32_t 
-	Subscription::sequenceNumber(void)
-	{
-		boost::mutex::scoped_lock g(mutex_);
-		sequenceNumber_++;
-		if (sequenceNumber_ == 0) sequenceNumber_;
-		return sequenceNumber_;
-	}
+
 
 	Subscription::Subscription(void)
 	: subscriptionId_(uniqueSubscriptionId())
 	, slotTimerElement_(constructSPtr<SlotTimerElement>())
 	, retransmissionQueue_()
 	, monitorManager_()
+	, acknowledgementManager_()
 	{
+	    monitorManager_.subscriptionId(subscriptionId_);
 	}
 
 	Subscription::~Subscription(void)
@@ -88,10 +82,10 @@ namespace OpcUaStackServer
 	}
 
 	void 
-	Subscription::ioService(IOService* ioService)
+	Subscription::ioThread(IOThread* ioThread)
 	{
-		ioService_ = ioService;
-		monitorManager_.ioService(ioService);
+		ioThread_ = ioThread;
+		monitorManager_.ioThread(ioThread);
 	}
 
 	void 
@@ -99,6 +93,20 @@ namespace OpcUaStackServer
 	{
 		monitorManager_.informationModel(informationModel);
 	}
+
+	void
+	Subscription::forwardGlobalSync(ForwardGlobalSync::SPtr& forwardGlobalSync)
+	{
+		monitorManager_.forwardGlobalSync(forwardGlobalSync);
+	}
+
+	OpcUaStatusCode
+	Subscription::receiveAcknowledgement(uint32_t acknowledgmentNumber)
+	{
+		acknowledgementManager_.deleteNotification(acknowledgmentNumber);
+		return Success;
+	}
+
 		
 	uint32_t 
 	Subscription::publishPre(void)
@@ -111,6 +119,7 @@ namespace OpcUaStackServer
 	{
 		if (trx.get() == NULL) {
 			actLifetimeCount_--;
+
 			if (actLifetimeCount_ == 0) return SubscriptionTimeout;
 
 			if (actMaxKeepAliveCount_ == 0) return NothingTodo;
@@ -125,29 +134,63 @@ namespace OpcUaStackServer
 		// check lifetime counter
 		actLifetimeCount_ = lifetimeCount_;
 
-		ExtensibleParameter::SPtr extensibleParameter = constructSPtr<ExtensibleParameter>();
-		extensibleParameter->parameterTypeId().nodeId(OpcUaId_DataChangeNotification_Encoding_DefaultBinary);
-		DataChangeNotification::SPtr dataChangeNotification = extensibleParameter->parameter<DataChangeNotification>();
-		
-		OpcUaStatusCode statusCode = monitorManager_.receive(dataChangeNotification->monitoredItems());
-		if (dataChangeNotification->monitoredItems()->size() > 0) {
+		ExtensibleParameter::SPtr extensibleParameter;
+		OpcUaStatusCode statusCode;
+
+		//
+		// handle event notification
+		//
+		extensibleParameter = constructSPtr<ExtensibleParameter>();
+		extensibleParameter->parameterTypeId().nodeId(OpcUaId_EventNotificationList_Encoding_DefaultBinary);
+		EventNotificationList::SPtr eventNotificationList = extensibleParameter->parameter<EventNotificationList>();
+		statusCode = monitorManager_.receive(eventNotificationList->events());
+		if (eventNotificationList->events()->size() > 0) {
 			actMaxKeepAliveCount_ = maxKeepAliveCount_;
+
+			uint32_t sequencenumber = acknowledgementManager_.nextSequenceNumber();
+			acknowledgementManager_.addNotification(sequencenumber, extensibleParameter);
 
 			PublishResponse::SPtr publishResponse = trx->response();
 			publishResponse->notificationMessage()->notificationData()->set(0, extensibleParameter);
 			publishResponse->notificationMessage()->publishTime().dateTime(boost::posix_time::microsec_clock::local_time());
-			publishResponse->notificationMessage()->sequenceNumber(sequenceNumber());
+			publishResponse->notificationMessage()->sequenceNumber(sequencenumber);
 			publishResponse->subscriptionId(subscriptionId_);
 			publishResponse->moreNotifications(false);
-
-			publishResponse->availableSequenceNumbers()->resize(1);
-			publishResponse->availableSequenceNumbers()->set(0, publishResponse->notificationMessage()->sequenceNumber());
+			acknowledgementManager_.availableSequenceNumbers(publishResponse->availableSequenceNumbers());
 
 			if (statusCode == BadOutOfMemory) return NeedAttention;
 			return SendPublish;
 		}
 
+		//
+		// handle data change notification
+		//
+		extensibleParameter = constructSPtr<ExtensibleParameter>();
+		extensibleParameter->parameterTypeId().nodeId(OpcUaId_DataChangeNotification_Encoding_DefaultBinary);
+		DataChangeNotification::SPtr dataChangeNotification = extensibleParameter->parameter<DataChangeNotification>();
+		
+		statusCode = monitorManager_.receive(dataChangeNotification->monitoredItems());
+		if (dataChangeNotification->monitoredItems()->size() > 0) {
+			actMaxKeepAliveCount_ = maxKeepAliveCount_;
+
+			uint32_t sequencenumber = acknowledgementManager_.nextSequenceNumber();
+			acknowledgementManager_.addNotification(sequencenumber, extensibleParameter);
+
+			PublishResponse::SPtr publishResponse = trx->response();
+			publishResponse->notificationMessage()->notificationData()->set(0, extensibleParameter);
+			publishResponse->notificationMessage()->publishTime().dateTime(boost::posix_time::microsec_clock::local_time());
+			publishResponse->notificationMessage()->sequenceNumber(sequencenumber);
+			publishResponse->subscriptionId(subscriptionId_);
+			publishResponse->moreNotifications(false);
+			acknowledgementManager_.availableSequenceNumbers(publishResponse->availableSequenceNumbers());
+
+			if (statusCode == BadOutOfMemory) return NeedAttention;
+			return SendPublish;
+		}
+
+		//
 		// check keepalive counter
+		//
 		actMaxKeepAliveCount_--;
 		if (actMaxKeepAliveCount_ == 0) {
 			actMaxKeepAliveCount_  = maxKeepAliveCount_;
@@ -166,13 +209,13 @@ namespace OpcUaStackServer
 		PublishResponse::SPtr publishResponse = trx->response();
 		ServiceTransaction::SPtr serviceTransaction = trx;
 
+		uint32_t sequencenumber = acknowledgementManager_.actSequenceNumber();
+
 		publishResponse->notificationMessage()->publishTime().dateTime(boost::posix_time::microsec_clock::local_time());
-		publishResponse->notificationMessage()->sequenceNumber(sequenceNumber());
+		publishResponse->notificationMessage()->sequenceNumber(sequencenumber);
 		publishResponse->subscriptionId(subscriptionId_);
 		publishResponse->moreNotifications(false);
-
-		publishResponse->availableSequenceNumbers()->resize(1);
-		publishResponse->availableSequenceNumbers()->set(0, publishResponse->notificationMessage()->sequenceNumber());
+		acknowledgementManager_.availableSequenceNumbers(publishResponse->availableSequenceNumbers());
 	}
 
 	void 
@@ -200,12 +243,16 @@ namespace OpcUaStackServer
 	OpcUaStatusCode 
 	Subscription::receive(ServiceTransactionCreateMonitoredItems::SPtr trx)
 	{
+		// FIXME: todo - handle events
+
 		return monitorManager_.receive(trx);
 	}
 
 	OpcUaStatusCode 
 	Subscription::receive(ServiceTransactionDeleteMonitoredItems::SPtr trx)
 	{
+		// FIXME: todo - handle events
+
 		return monitorManager_.receive(trx);
 	}
 
@@ -226,5 +273,4 @@ namespace OpcUaStackServer
 	{
 		return monitorManager_.receive(trx);
 	}
-
 }

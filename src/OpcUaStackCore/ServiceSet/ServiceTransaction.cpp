@@ -1,5 +1,5 @@
 /*
-   Copyright 2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2018 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -40,6 +40,8 @@ namespace OpcUaStackCore
 	, responseHeader_()
 	, sync_(false)
 	, conditionBool_()
+	, handle_()
+	, userContext_()
 	{
 		nodeTypeRequest_.set(nodeTypeRequest);
 		nodeTypeResponse_.set(nodeTypeResponse);
@@ -72,6 +74,18 @@ namespace OpcUaStackCore
 	ServiceTransaction::sessionId(void)
 	{
 		return sessionId_;
+	}
+
+	void
+	ServiceTransaction::handle(Object::SPtr& handle)
+	{
+		handle_ = handle;
+	}
+
+	Object::SPtr
+	ServiceTransaction::handle(void)
+	{
+		return handle_;
 	}
 
 	OpcUaUInt32 
@@ -162,6 +176,18 @@ namespace OpcUaStackCore
 	ServiceTransaction::componentSession(Component* componentSession)
 	{
 		componentSession_ = componentSession;
+	}
+
+	void
+	ServiceTransaction::userContext(UserContext::SPtr& userContext)
+	{
+		userContext_ = userContext;
+	}
+
+	UserContext::SPtr&
+	ServiceTransaction::userContext(void)
+	{
+		return userContext_;
 	}
 
 	void 

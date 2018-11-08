@@ -1,5 +1,5 @@
 /*
-   Copyright 2016 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2016-2017 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -15,6 +15,8 @@
    Autor: Kai Huebl (kai@huebl-sgh.de)
  */
 
+#include <iostream>
+#include <cstring>
 #include <cmath>
 #include <openssl/evp.h>
 #include <openssl/buffer.h>
@@ -22,6 +24,11 @@
 
 namespace OpcUaStackCore
 {
+
+	const std::string Base64::base64Chars_ =
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+		"abcdefghijklmnopqrstuvwxyz"
+		"0123456789+/";
 
 	Base64::Base64(void)
 	{
@@ -31,35 +38,78 @@ namespace OpcUaStackCore
 	{
 	}
 
+	uint32_t
+	Base64::asciiLen2base64Len(uint32_t asciiLen)
+	{
+		uint32_t rest = asciiLen % 3;
+		if (rest != 0) {
+			asciiLen += (3 - rest);
+		}
+		return (4*ceil((double)asciiLen/3.0));
+	}
+
+	uint32_t
+	Base64::base64Len2asciiLen(uint32_t base64Len)
+	{
+		return ((6 * base64Len) / 8);
+	}
+
 	bool
 	Base64::encode(const char* asciiBuf, uint32_t asciiLen, char* base64Buf, uint32_t& base64Len)
 	{
-		BIO* b64, *bio;
-		BUF_MEM *bptr;
+		uint32_t pos = 0;
 
-		b64 = BIO_new(BIO_f_base64());
-		BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
-		bio = BIO_new(BIO_s_mem());
-		BIO_push(b64, bio);
-		BIO_get_mem_ptr(b64, &bptr);
-
-		// write directly to base64 buffer to avoid copy operation
-		uint32_t length = round(4*ceil((double)asciiLen/3.0));
+		// check length
+		uint32_t length = asciiLen2base64Len(asciiLen);
 		if (length > base64Len) return false;
 		base64Len = length;
+		char* buf= (char*)asciiBuf;
 
-		bptr->length = 0;
-		bptr->max = length + 1;
-		bptr->data = base64Buf;
+		memset(base64Buf, 0x00, length);
 
-		BIO_write(b64, asciiBuf, asciiLen);
-		BIO_flush(b64);
+		unsigned char charArray3[3];
+		unsigned char charArray4[4];
 
-		bptr->length = 0;
-		bptr->max = 0;
-		bptr->data = nullptr;
+		uint32_t idx = 0;
+		while (asciiLen--) {
+			charArray3[idx] = *buf;
+			idx++;
+			buf++;
 
-		BIO_free_all(b64);
+		    if (idx == 3) {
+		    	charArray4[0] = (charArray3[0] & 0xfc) >> 2;
+		    	charArray4[1] = ((charArray3[0] & 0x03) << 4) + ((charArray3[1] & 0xf0) >> 4);
+		    	charArray4[2] = ((charArray3[1] & 0x0f) << 2) + ((charArray3[2] & 0xc0) >> 6);
+		    	charArray4[3] = charArray3[2] & 0x3f;
+
+		        for(uint32_t i = 0; i<4; i++) {
+		        	base64Buf[pos] = base64Chars_[charArray4[i]];
+		        	pos++;
+		        }
+		        idx = 0;
+		    }
+		 }
+
+		 if (idx) {
+			 for(uint32_t j = idx; j < 3; j++) {
+				 charArray3[j] = '\0';
+			 }
+
+			 charArray4[0] = (charArray3[0] & 0xfc) >> 2;
+			 charArray4[1] = ((charArray3[0] & 0x03) << 4) + ((charArray3[1] & 0xf0) >> 4);
+			 charArray4[2] = ((charArray3[1] & 0x0f) << 2) + ((charArray3[2] & 0xc0) >> 6);
+			 charArray4[3] = charArray3[2] & 0x3f;
+
+			 for (uint32_t j = 0; (j < idx + 1); j++) {
+				 base64Buf[pos] = base64Chars_[charArray4[j]];
+				 pos++;
+			 }
+
+			 while((idx++ < 3)) {
+				 base64Buf[pos] = '=';
+				 pos++;
+			 }
+		 }
 
 		return true;
 	}
@@ -67,21 +117,69 @@ namespace OpcUaStackCore
 	bool
 	Base64::decode(const char* base64Buf, uint32_t base64Len, char* asciiBuf, uint32_t& asciiLen)
 	{
-		uint32_t length = (6 * base64Len) / 8;
+		uint32_t length = base64Len2asciiLen(base64Len);
 		if (length > asciiLen) return false;
+		asciiLen = 0;
 
-		BIO *b64, *bio;
-		b64 = BIO_new(BIO_f_base64());
-		BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
-		bio = BIO_new_mem_buf((char*)base64Buf, base64Len);
-		bio = BIO_push(b64, bio);
+		memset(asciiBuf, 0x00, length);
+		char* buf = (char*)base64Buf;
 
-		length = BIO_read(bio, asciiBuf, length);
-		asciiLen = length;
+		uint32_t idx = 0;
+		uint32_t rpos = 0;
+		uint32_t wpos = 0;
+		unsigned char charArray4[4];
+		unsigned char charArray3[3];
 
-		BIO_free_all(b64);
+		while (base64Len-- && ( buf[rpos] != '=') && Base64::isBase64(buf[rpos])) {
+		    charArray4[idx] = buf[rpos];
+		    rpos++;
+		    idx++;
+
+		    if (idx == 4) {
+		        for (idx = 0; idx <4; idx++) {
+		            charArray4[idx] = base64Chars_.find(charArray4[idx]);
+		        }
+
+		        charArray3[0] = (charArray4[0] << 2) + ((charArray4[1] & 0x30) >> 4);
+		        charArray3[1] = ((charArray4[1] & 0xf) << 4) + ((charArray4[2] & 0x3c) >> 2);
+		        charArray3[2] = ((charArray4[2] & 0x3) << 6) + charArray4[3];
+
+		        for (idx = 0; (idx < 3); idx++){
+		        	asciiBuf[wpos] = charArray3[idx];
+		        	wpos++;
+		        }
+		        idx = 0;
+		    }
+		}
+
+		if (idx) {
+		    for (uint32_t j = idx; j < 4; j++) {
+		        charArray4[j] = 0;
+		    }
+
+		    for (uint32_t j = 0; j < 4; j++) {
+		        charArray4[j] = base64Chars_.find(charArray4[j]);
+		    }
+
+		    charArray3[0] = (charArray4[0] << 2) + ((charArray4[1] & 0x30) >> 4);
+		    charArray3[1] = ((charArray4[1] & 0xf) << 4) + ((charArray4[2] & 0x3c) >> 2);
+		    charArray3[2] = ((charArray4[2] & 0x3) << 6) + charArray4[3];
+
+		    for (uint32_t j = 0; (j < idx - 1); j++) {
+	        	asciiBuf[wpos] = charArray3[j];
+	        	wpos++;
+		    }
+		}
+
+		asciiLen = wpos;
 
 		return true;
+	}
+
+	bool
+	Base64::isBase64(unsigned char c)
+	{
+		return (isalnum(c) || (c == '+') || (c == '/'));
 	}
 
 }

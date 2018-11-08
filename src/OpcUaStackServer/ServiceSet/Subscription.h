@@ -1,5 +1,5 @@
 /*
-   Copyright 2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2017 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -23,9 +23,11 @@
 #include "OpcUaStackCore/Base/ObjectPool.h"
 #include "OpcUaStackCore/BuildInTypes/OpcUaStatusCode.h"
 #include "OpcUaStackCore/Utility/SlotTimer.h"
+#include "OpcUaStackCore/ServiceSetApplication/ForwardGlobalSync.h"
 #include "OpcUaStackCore/ServiceSet/SubscriptionServiceTransaction.h"
 #include "OpcUaStackCore/ServiceSet/MonitoredItemServiceTransaction.h"
 #include "OpcUaStackServer/ServiceSet/MonitorManager.h"
+#include "OpcUaStackServer/ServiceSet/AcknowledgementManager.h"
 #include "OpcUaStackServer/InformationModel/InformationModel.h"
 #include <map>
 
@@ -57,8 +59,10 @@ namespace OpcUaStackServer
 		void publishingInterval(double publishingInterval);	
 		void lifetimeCount(uint32_t lifetimeCount);
 		void maxKeepAliveCount(uint32_t maxKeepAliveCount);
-		void ioService(IOService* ioService);
+		void ioThread(IOThread* ioThread);
 		void informationModel(InformationModel::SPtr informationModel);
+		void forwardGlobalSync(ForwardGlobalSync::SPtr& forwardGlobalSync);
+		OpcUaStatusCode receiveAcknowledgement(uint32_t acknowledgmentNumber);
 
 		void retransmissionQueue(SubscriptionAcknowledgement::SPtr subscriptionAcknowledgement);
 		void retransmissionQueue(PublishResponse::SPtr publishResponse);
@@ -79,11 +83,10 @@ namespace OpcUaStackServer
 		void createKeepalive(ServiceTransactionPublish::SPtr trx);
 
 		static uint32_t uniqueSubscriptionId(void);
-		static uint32_t sequenceNumber(void);
 		static boost::mutex mutex_;
 		static uint32_t uniqueSubscriptionId_;
-		static uint32_t sequenceNumber_;
 
+		AcknowledgementManager acknowledgementManager_;
 		uint32_t subscriptionId_;
 		double publishingInterval_;
 		uint32_t lifetimeCount_;
@@ -93,7 +96,7 @@ namespace OpcUaStackServer
 		SlotTimerElement::SPtr slotTimerElement_;
 		RetransmissionQueue retransmissionQueue_;
 
-		IOService* ioService_;
+		IOThread* ioThread_;
 		MonitorManager monitorManager_;
 	};
 

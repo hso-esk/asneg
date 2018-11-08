@@ -165,6 +165,20 @@ namespace OpcUaStackCore
 		return true;
 	}
 
+	bool
+	OpcUaNodeIdBase::get(OpcUaByteString& nodeId, OpcUaUInt16& namespaceIndex)
+	{
+		if (nodeIdType() != OpcUaBuildInType_OpcUaByteString) {
+			return false;
+		}
+
+		namespaceIndex = namespaceIndex_;
+		OpcUaByteString::SPtr opcUaByteStringSPtr;
+		opcUaByteStringSPtr = boost::get<OpcUaByteString::SPtr>(nodeIdValue_);
+		opcUaByteStringSPtr->copyTo(nodeId);
+		return true;
+	}
+
 	bool 
 	OpcUaNodeIdBase::get(OpcUaByte** buf, OpcUaInt32* bufLen, OpcUaUInt16& namespaceIndex)
 	{
@@ -328,6 +342,11 @@ namespace OpcUaStackCore
 		OpcUaByte ef = encodingFlag();
 
 		if (type == OpcUaBuildInType_Unknown) {
+			//
+			// The type of the node identifier is unknown. We generate a
+			// default variable.
+			//
+
 			OpcUaUInt32 nodeId = 0;
 			OpcUaUInt16 namespaceIndex = 0;
 			const_cast<OpcUaNodeIdBase*>(this)->set(nodeId, namespaceIndex);
@@ -336,7 +355,13 @@ namespace OpcUaStackCore
 
 		if (namespaceIndex_ == 0 && type == OpcUaBuildInType_OpcUaUInt32) {
 			OpcUaUInt32 identifier = boost::get<OpcUaUInt32>(nodeIdValue_);
+
 			if (identifier <= 0xFF) {
+
+				//
+				// The numeric value fits into the two byte representation
+				//
+
 				OpcUaByte encodingMask = 0x00+ef;
 				OpcUaNumber::opcUaBinaryEncode(os, encodingMask);
 				OpcUaNumber::opcUaBinaryEncode(os, (OpcUaStackCore::OpcUaByte)identifier);
@@ -347,6 +372,11 @@ namespace OpcUaStackCore
 		if (namespaceIndex_ <= 0xFF && type == OpcUaBuildInType_OpcUaUInt32) {
 			OpcUaUInt32 identifier = boost::get<OpcUaUInt32>(nodeIdValue_);
 			if (identifier <= 0xFFFF) {
+
+				//
+				// The numeric value fits into the four byte representation
+				//
+
 				OpcUaByte encodingMask = 0x01+ef;
 				OpcUaNumber::opcUaBinaryEncode(os, encodingMask);
 				OpcUaNumber::opcUaBinaryEncode(os, (OpcUaStackCore::OpcUaByte)namespaceIndex_);
@@ -472,6 +502,38 @@ namespace OpcUaStackCore
 		nodeIdString = pt.get_value<std::string>();
 		if (!fromString(nodeIdString)) return false;
 		return true;
+	}
+
+	bool
+	OpcUaNodeIdBase::xmlEncode(boost::property_tree::ptree& pt, const std::string& element, Xmlns& xmlns)
+	{
+		boost::property_tree::ptree elementTree;
+		if (!xmlEncode(elementTree, xmlns)) {
+			Log(Error, "OpcUaNodeId xml encoder error")
+				.parameter("Element", element);
+			return false;
+		}
+		pt.push_back(std::make_pair(xmlns.addxmlns(element), elementTree));
+		return true;
+	}
+
+	bool
+	OpcUaNodeIdBase::xmlEncode(boost::property_tree::ptree& pt, Xmlns& xmlns)
+	{
+		pt.put(xmlns.addxmlns("Identifier"), toString());
+		return true;
+	}
+
+	bool
+	OpcUaNodeIdBase::xmlDecode(boost::property_tree::ptree& pt, Xmlns& xmlns)
+	{
+		boost::optional<std::string> sourceValue = pt.get_optional<std::string>(xmlns.addxmlns("Identifier"));
+		if (!sourceValue) {
+			Log(Error, "OpcUaNodeId xml decoder error - element not exist in xml document")
+				.parameter("Element", "Identifier");
+			return false;
+		}
+		return fromString(*sourceValue);
 	}
 
 	bool 

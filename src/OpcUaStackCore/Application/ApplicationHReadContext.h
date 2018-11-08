@@ -1,5 +1,5 @@
 /*
-   Copyright 2016 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2016-2018 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -18,7 +18,9 @@
 #ifndef __OpcUaStackCore_ApplicationHReadContext_h__
 #define __OpcUaStackCore_ApplicationHReadContext_h__
 
+#include "OpcUaStackCore/Base/os.h"
 #include "OpcUaStackCore/Base/BaseClass.h"
+#include "OpcUaStackCore/Base/UserContext.h"
 #include "OpcUaStackCore/BuildInTypes/OpcUaNodeId.h"
 #include "OpcUaStackCore/BuildInTypes/OpcUaDataValue.h"
 #include "OpcUaStackCore/BuildInTypes/OpcUaStatusCode.h"
@@ -27,9 +29,12 @@
 namespace OpcUaStackCore
 {
 
-	class ApplicationHReadContext
+	class DLLEXPORT ApplicationHReadContext
 	{
 	  public:
+		ApplicationHReadContext(void);
+		~ApplicationHReadContext(void);
+
 		BaseClass::SPtr applicationContext_;		// IN - application context from register call
 		OpcUaNodeId nodeId_;						// IN - node id to be read
 		boost::posix_time::ptime startTime_;		// IN - Start time of variables
@@ -39,6 +44,7 @@ namespace OpcUaStackCore
 													//      point schould be deleted
 		std::string continousPoint_;				// IN - continous point or empty string
 		uint32_t numValuesPerNode_;					// IN - maximum number of data values in result array
+		UserContext::SPtr userContext_;				// IN - user context
 		OpcUaDataValueArray::SPtr dataValueArray_;	// OUT - result data array
 		OpcUaStatusCode statusCode_;				// OUT - status code of the read operation
 	};

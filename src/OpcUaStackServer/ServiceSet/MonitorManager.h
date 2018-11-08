@@ -1,5 +1,5 @@
 /*
-   Copyright 2015-2106 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2018 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -24,8 +24,10 @@
 #include "OpcUaStackCore/ServiceSet/MonitoredItemServiceTransaction.h"
 #include "OpcUaStackCore/Base/IOService.h"
 #include "OpcUaStackCore/Utility/SlotTimer.h"
+#include "OpcUaStackCore/ServiceSetApplication/ForwardGlobalSync.h"
 #include "OpcUaStackCore/ServiceSet/MonitoredItemNotification.h"
 #include "OpcUaStackServer/ServiceSet/MonitorItem.h"
+#include "OpcUaStackServer/ServiceSet/EventItem.h"
 #include "OpcUaStackServer/InformationModel/InformationModel.h"
 
 using namespace OpcUaStackCore;
@@ -41,12 +43,14 @@ namespace OpcUaStackServer
 		MonitorManager(void);
 		~MonitorManager(void);
 
-		void ioService(IOService* ioService);
+		void ioThread(IOThread* ioThread);
 		void subscriptionId(uint32_t subscriptionId);
 		uint32_t subscriptionId(void);
 		void informationModel(InformationModel::SPtr informationModel);
+		void forwardGlobalSync(ForwardGlobalSync::SPtr& forwardGlobalSync);
 		uint32_t noticicationNumber(void);
 		bool notificationAvailable(void);
+
 
 		OpcUaStatusCode receive(ServiceTransactionCreateMonitoredItems::SPtr trx);
 		OpcUaStatusCode receive(ServiceTransactionDeleteMonitoredItems::SPtr trx);
@@ -54,17 +58,42 @@ namespace OpcUaStackServer
 		OpcUaStatusCode receive(ServiceTransactionSetMonitoringMode::SPtr trx);
 		OpcUaStatusCode receive(ServiceTransactionSetTriggering::SPtr trx);
 		OpcUaStatusCode receive(MonitoredItemNotificationArray::SPtr monitoredItemNotificationArray);
+		OpcUaStatusCode receive(EventFieldListArray::SPtr eventFieldListArray);
 
 	  private:
-		void forwardStartMonitoredItem(BaseNodeClass::SPtr baseNodeClass, uint32_t monitoredItemId);
-		void forwardStopMonitoredItem(BaseNodeClass::SPtr baseNodeClass, uint32_t monitoredItemId);
+		OpcUaStatusCode forwardAutorizationCreateMonitoredItem(UserContext::SPtr& userContext, ReadValueId& readValueId);
+		OpcUaStatusCode forwardAutorizationCreateEventItem(UserContext::SPtr& userContext, ReadValueId& readValueId);
+
+		void createMonitoredItem(
+			uint32_t idx,
+			ServiceTransactionCreateMonitoredItems::SPtr& trx,
+			CreateMonitoredItemsRequest::SPtr& createMonitorItemRequest,
+			CreateMonitoredItemsResponse::SPtr& createMonitorItemResponse
+		);
+		void createEventItem(
+			uint32_t idx,
+			ServiceTransactionCreateMonitoredItems::SPtr& trx,
+			CreateMonitoredItemsRequest::SPtr& createMonitorItemRequest,
+			CreateMonitoredItemsResponse::SPtr& createMonitorItemResponse
+		);
+		void forwardStartMonitoredItem(
+			UserContext::SPtr& userContext,
+			BaseNodeClass::SPtr baseNodeClass,
+			uint32_t monitoredItemId
+		);
+		void forwardStopMonitoredItem(
+			UserContext::SPtr& userContext,
+			BaseNodeClass::SPtr baseNodeClass,
+			uint32_t monitoredItemId
+		);
 		void sampleTimeout(MonitorItem::SPtr monitorItem);
 
-		IOService* ioService_;
+		IOThread* ioThread_;
 		uint32_t subscriptionId_;
 		MonitorItemMap monitorItemMap_;
+		EventItem::Map eventItemMap_;
 		InformationModel::SPtr informationModel_;
-		SlotTimer::SPtr slotTimer_;
+		ForwardGlobalSync::SPtr forwardGlobalSync_;
 
 		MonitoredItemIds monitoredItemIds_;
 	};

@@ -37,6 +37,25 @@ set_target_properties(
     SOVERSION ${VERSION_MAJOR}
 )
 
+get_target_property(
+    OpcUaStackCoreLibName 
+    OpcUaStackCore
+    OUTPUT_NAME
+)
+
+if (WIN32)
+    set_target_properties(
+    	OpcUaStackCore 
+    	PROPERTIES OUTPUT_NAME 
+    	"OpcUaStackCore${VERSION_MAJOR}"
+    )
+	set(OPCUASTACK_CORE_LIB_NAME OpcUaStackCore@VERSION_MAJOR@.lib)
+else()
+    set(OPCUASTACK_CORE_LIB_NAME libOpcUaStackCore.so.@VERSION_MAJOR@)
+endif()
+
+message(STATUS "OpcUaStackCore")
+message(STATUS "  library name: ${OPCUASTACK_CORE_LIB_NAME}")
 
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
@@ -48,6 +67,7 @@ set_target_properties(
 file(GLOB INC_OpcUaStackCore_Base OpcUaStackCore/Base/*.h OpcUaStackCore/Base/*.txx)
 file(GLOB INC_OpcUaStackCore_BuildInTypes OpcUaStackCore/BuildInTypes/*.h)
 file(GLOB INC_OpcUaStackCore_Component OpcUaStackCore/Component/*.h)
+file(GLOB INC_OpcUaStackCore_Certificate OpcUaStackCore/Certificate/*.h)
 file(GLOB INC_OpcUaStackCore_Core OpcUaStackCore/Core/*.h)
 file(GLOB INC_OpcUaStackCore_SecureChannel OpcUaStackCore/SecureChannel/*.h)
 file(GLOB INC_OpcUaStackCore_ServiceSet OpcUaStackCore/ServiceSet/*.h OpcUaStackCore/ServiceSet/*.txx)
@@ -60,7 +80,9 @@ file(GLOB INC_OpcUaStackCore_ApplicationUtility OpcUaStackCore/ApplicationUtilit
 file(GLOB INC_OpcUaStackCore_StandardDataTypes OpcUaStackCore/StandardDataTypes/*.h)
 file(GLOB INC_OpcUaStackCore_ComplexDataTypes OpcUaStackCore/ComplexDataTypes/*.h)
 file(GLOB INC_OpcUaStackCore_DataType OpcUaStackCore/DataType/*.h)
+file(GLOB INC_OpcUaStackCore_Filter OpcUaStackCore/Filter/*.h)
 file(GLOB INC_OpcUaStackCore_EventType OpcUaStackCore/EventType/*.h)
+file(GLOB INC_OpcUaStackCore_StandardEventType OpcUaStackCore/StandardEventType/*.h)
 
 install(
     TARGETS OpcUaStackCore 
@@ -83,6 +105,12 @@ install(
 install(
     FILES ${INC_OpcUaStackCore_Component} 
     DESTINATION /usr/include/OpcUaStack${VERSION_MAJOR}/OpcUaStackCore/Component
+    COMPONENT headers
+)
+
+install(
+    FILES ${INC_OpcUaStackCore_Certificate} 
+    DESTINATION /usr/include/OpcUaStack${VERSION_MAJOR}/OpcUaStackCore/Certificate
     COMPONENT headers
 )
 
@@ -159,7 +187,19 @@ install(
 )
 
 install(
+    FILES ${INC_OpcUaStackCore_Filter} 
+    DESTINATION /usr/include/OpcUaStack${VERSION_MAJOR}/OpcUaStackCore/Filter
+    COMPONENT headers
+)
+
+install(
     FILES ${INC_OpcUaStackCore_EventType} 
     DESTINATION /usr/include/OpcUaStack${VERSION_MAJOR}/OpcUaStackCore/EventType
+    COMPONENT headers
+)
+
+install(
+    FILES ${INC_OpcUaStackCore_StandardEventType} 
+    DESTINATION /usr/include/OpcUaStack${VERSION_MAJOR}/OpcUaStackCore/StandardEventType
     COMPONENT headers
 )

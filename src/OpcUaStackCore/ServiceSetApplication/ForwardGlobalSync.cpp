@@ -1,5 +1,5 @@
 /*
-   Copyright 2017 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2017-2018 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -23,6 +23,11 @@ namespace OpcUaStackCore
 	ForwardGlobalSync::ForwardGlobalSync(void)
 	: registerServerService_()
 	, findServersService_()
+	, eventItemStartService_()
+	, eventItemStopService_()
+	, authenticationService_()
+	, autorizationService_()
+	, closeSessionService_()
 	{
 	}
 
@@ -42,11 +47,47 @@ namespace OpcUaStackCore
 		return findServersService_;
 	}
 
+	ForwardCallback&
+	ForwardGlobalSync::eventItemStartService(void)
+	{
+		return eventItemStartService_;
+	}
+
+	ForwardCallback&
+	ForwardGlobalSync::eventItemStopService(void)
+	{
+		return eventItemStopService_;
+	}
+
+	ForwardCallback&
+	ForwardGlobalSync::authenticationService(void)
+	{
+		return authenticationService_;
+	}
+
+	ForwardCallback&
+	ForwardGlobalSync::autorizationService(void)
+	{
+		return autorizationService_;
+	}
+
+	ForwardCallback&
+	ForwardGlobalSync::closeSessionService(void)
+	{
+		return closeSessionService_;
+	}
+
 	void
 	ForwardGlobalSync::updateFrom(ForwardGlobalSync& forwardGlobalSync)
 	{
 		registerServerService_.updateFrom(forwardGlobalSync.registerServerService());
 		findServersService_.updateFrom(forwardGlobalSync.findServersService());
+		eventItemStartService_.updateFrom(forwardGlobalSync.eventItemStartService());
+		eventItemStopService_.updateFrom(forwardGlobalSync.eventItemStopService());
+		authenticationService_.updateFrom(forwardGlobalSync.authenticationService());
+		autorizationService_.updateFrom(forwardGlobalSync.autorizationService());
+		closeSessionService_.updateFrom(forwardGlobalSync.closeSessionService());
+
 	}
 
 }

@@ -51,6 +51,9 @@ namespace OpcUaStackServer
 		void receiveNamespaceInfoRequest(ServiceTransaction::SPtr serviceTransaction);
 		void receiveCreateNodeInstanceRequest(ServiceTransaction::SPtr serviceTransaction);
 		void receiveDelNodeInstanceRequest(ServiceTransaction::SPtr serviceTransaction);
+		void receiveFireEventRequest(ServiceTransaction::SPtr serviceTransaction);
+		void receiveBrowsePathToNodeIdRequest(ServiceTransaction::SPtr serviceTransaction);
+		void getNodeIdFromBrowsePath(BrowseName::SPtr& browseName, NodeIdResult::SPtr& nodeIdResult);
 	};
 
 }

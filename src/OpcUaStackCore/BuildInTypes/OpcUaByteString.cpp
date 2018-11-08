@@ -1,5 +1,5 @@
 /*
-   Copyright 2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2018 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -17,6 +17,7 @@
 
 #include "OpcUaStackCore/BuildInTypes/OpcUaByteString.h"
 #include "OpcUaStackCore/Base/Utility.h"
+#include "OpcUaStackCore/Base/Base64.h"
 #include <string.h>
 
 namespace OpcUaStackCore
@@ -32,8 +33,36 @@ namespace OpcUaStackCore
 	OpcUaByteString::OpcUaByteString(void)
 	: Object()
 	, length_(-1)
-	, value_(NULL)
+	, value_(nullptr)
 	{
+	}
+
+	OpcUaByteString::OpcUaByteString(const OpcUaByteString& byteString)
+	: Object()
+	, length_(-1)
+	, value_(nullptr)
+	{
+		char* memBuf;
+		int32_t memLen;
+
+		byteString.value(&memBuf, &memLen);
+		value(memBuf, memLen);
+	}
+
+	OpcUaByteString::OpcUaByteString(const std::string& value)
+	: Object()
+	, length_(-1)
+	, value_(nullptr)
+	{
+		this->value(value);
+	}
+
+	OpcUaByteString::OpcUaByteString(const OpcUaByte* value, OpcUaInt32 length)
+	: Object()
+	, length_(-1)
+	, value_(nullptr)
+	{
+		this->value(value, length);
 	}
 		
 	OpcUaByteString::~OpcUaByteString(void)
@@ -44,8 +73,8 @@ namespace OpcUaStackCore
 	void 
 	OpcUaByteString::value(OpcUaByte** value, OpcUaInt32* length) const
 	{
-		*value = value_;
-		*length = length_;
+		(*value) = value_;
+		(*length) = length_;
 	}
 
 	void 
@@ -58,7 +87,10 @@ namespace OpcUaStackCore
 	OpcUaByteString::value(const OpcUaByte* value, OpcUaInt32 length)
 	{
 		reset();
-		if (length < 0) return;
+		if (value == nullptr || length < 0) {
+			return;
+		}
+
 		value_ = (OpcUaByte*)malloc(length);
 		memcpy(value_, value, length);
 		length_ = length;
@@ -81,13 +113,31 @@ namespace OpcUaStackCore
 	{
 		return length_;
 	}
+
+	char*
+	OpcUaByteString::memBuf(void)
+	{
+		return (char*)value_;
+	}
+
+	bool
+	OpcUaByteString::resize(uint32_t size)
+	{
+		reset();
+		if (size <= 0) return true;
+		value_ = (OpcUaByte*)malloc(size);
+		memset(value_, 0x00, size);
+		length_ = size;
+
+		return true;
+	}
 		
 	void 
 	OpcUaByteString::reset(void) 
 	{
-		if (value_ != NULL) {
+		if (value_ != nullptr) {
 			free((char*)value_);
-			value_ = NULL;
+			value_ = nullptr;
 			length_ = -1;
 		}
 	}
@@ -98,16 +148,33 @@ namespace OpcUaStackCore
 		return length_ != -1;
 	}
 
+	bool
+	OpcUaByteString::isNull(void) const
+	{
+		return length_ == -1;
+	}
+
 	OpcUaByteString& 
 	OpcUaByteString::operator=(const std::string& string)
 	{
 		value(string);
 		return *this;
 	}
+
+	OpcUaByteString&
+	OpcUaByteString::operator=(const OpcUaByteString& byteString)
+	{
+		char* memBuf;
+		int32_t memLen;
+
+		byteString.value(&memBuf, &memLen);
+		value(memBuf, memLen);
+		return *this;
+	}
 		
 	OpcUaByteString::operator std::string const (void)
 	{
-		if (length_ < 1) {
+		if (length_ < 1 || value_ == nullptr) {
 			return std::string();
 		}
 		return std::string((char*)value_, length_);
@@ -184,9 +251,7 @@ namespace OpcUaStackCore
 	OpcUaByteString::opcUaBinaryEncode(std::ostream& os) const
 	{
 		OpcUaNumber::opcUaBinaryEncode(os, length_);
-		if (length_ < 1) {
-			return;
-		}
+		if (length_ < 1) return;
 		os.write((char*)value_, length_);
 	}
 		
@@ -195,9 +260,7 @@ namespace OpcUaStackCore
 	{
 		reset();
 		OpcUaNumber::opcUaBinaryDecode(is, length_);
-		if (length_ < 1) {
-			return;
-		}
+		if (length_ < 1) return;
 		
 		value_ = (OpcUaByte*)malloc(length_);
 		is.read((char*)value_, length_);
@@ -269,6 +332,80 @@ namespace OpcUaStackCore
 	OpcUaByteString::fromString(const std::string& string)
 	{
 		value(string);
+	}
+
+	bool
+	OpcUaByteString::xmlEncode(boost::property_tree::ptree& pt, const std::string& element, Xmlns& xmlns)
+	{
+		boost::property_tree::ptree elementTree;
+		if (!xmlEncode(elementTree, xmlns)) {
+			Log(Error, "OpcUaByteString xml encoder error")
+				.parameter("Element", element);
+			return false;
+		}
+		pt.push_back(std::make_pair(xmlns.addxmlns(element), elementTree));
+		return true;
+	}
+
+	bool
+	OpcUaByteString::xmlEncode(boost::property_tree::ptree& pt, Xmlns& xmlns)
+	{
+		OpcUaByte* valueBuf = nullptr;
+		OpcUaInt32 valueLen = 0;
+		value(&valueBuf, &valueLen);
+
+		if (valueLen == 0) {
+			pt.put_value("");
+		}
+		else {
+			uint32_t bufLen = Base64::asciiLen2base64Len(valueLen);
+			if (bufLen == 0) {
+				Log(Error, "OpcUaByteString xml encoder error - base64 length error");
+				pt.put_value("");
+				return false;
+			}
+
+			char* buf = (char*) new char[bufLen+1];
+			if (!Base64::encode((const char*)valueBuf, valueLen, buf, bufLen)) {
+				Log(Error, "OpcUaByteString xml encoder error - base64 encoder error");
+				delete buf;
+				return false;
+			}
+
+			std::string str(buf, bufLen);
+			pt.put_value(str);
+			delete buf;
+		}
+		return true;
+	}
+
+	bool
+	OpcUaByteString::xmlDecode(boost::property_tree::ptree& pt, Xmlns& xmlns)
+	{
+		std::string sourceValue = pt.get_value<std::string>();
+
+		if (sourceValue.size() == 0) {
+			value("", 0);
+			return true;
+		}
+
+		uint32_t valueLen = Base64::base64Len2asciiLen(sourceValue.length());
+		if (valueLen == 0) {
+			Log(Error, "OpcUaByteString xml encoder error - ascii length error");
+			return false;
+		}
+		char* valueBuf = (char*)malloc(valueLen+1);
+		memset(valueBuf, 0x00, valueLen+1);
+
+		if (!Base64::decode(sourceValue.c_str(), sourceValue.length(), valueBuf, valueLen)) {
+			Log(Error, "OpcUaByteString xml encoder error - base64 decoder error");
+			delete valueBuf;
+			return false;
+		}
+
+		value(valueBuf, valueLen);
+		delete valueBuf;
+		return true;
 	}
 
 };

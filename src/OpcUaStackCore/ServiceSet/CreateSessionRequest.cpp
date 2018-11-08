@@ -1,5 +1,5 @@
 /*
-   Copyright 2015 Kai Huebl (kai@huebl-sgh.de)
+   Copyright 2015-2018 Kai Huebl (kai@huebl-sgh.de)
 
    Lizenziert gemäß Apache Licence Version 2.0 (die „Lizenz“); Nutzung dieser
    Datei nur in Übereinstimmung mit der Lizenz erlaubt.
@@ -103,6 +103,12 @@ namespace OpcUaStackCore
 		clientNonce_.value(buf, bufLen);
 	}
 
+	OpcUaByteString&
+	CreateSessionRequest::clientNonce(void)
+	{
+		return clientNonce_;
+	}
+
 	void 
 	CreateSessionRequest::clientNonce(OpcUaByte **buf, OpcUaInt32* bufLen) const
 	{
@@ -113,6 +119,12 @@ namespace OpcUaStackCore
 	CreateSessionRequest::clientCertificate(const OpcUaByte *buf, OpcUaInt32 bufLen)
 	{
 		clientCertificate_.value(buf, bufLen);
+	}
+
+	OpcUaByteString&
+	CreateSessionRequest::clientCertificate(void)
+	{
+		return clientCertificate_;
 	}
 
 	void 
@@ -147,7 +159,7 @@ namespace OpcUaStackCore
 	void 
 	CreateSessionRequest::opcUaBinaryEncode(std::ostream& os) const
 	{
-		requestHeaderSPtr_->opcUaBinaryEncode(os);
+		//requestHeaderSPtr_->opcUaBinaryEncode(os);
 		clientDescriptionSPtr_->opcUaBinaryEncode(os);
 		serverUri_.opcUaBinaryEncode(os);
 		endpointUrl_.opcUaBinaryEncode(os);
@@ -161,7 +173,7 @@ namespace OpcUaStackCore
 	void 
 	CreateSessionRequest::opcUaBinaryDecode(std::istream& is)
 	{
-		requestHeaderSPtr_->opcUaBinaryDecode(is);
+		//requestHeaderSPtr_->opcUaBinaryDecode(is);
 		clientDescriptionSPtr_->opcUaBinaryDecode(is);
 		serverUri_.opcUaBinaryDecode(is);
 		endpointUrl_.opcUaBinaryDecode(is);
